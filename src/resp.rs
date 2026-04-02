@@ -76,7 +76,7 @@ fn parse(input:&str) -> Result<Vec<String>, &'static str> {
             }
             State::BulkString => {
                 match current {
-                    Some('a'..='z') | Some('A'..='Z') => {
+                    Some('a'..='z') | Some('A'..='Z') | Some('0'..='9') => {
                         token.push(current.unwrap());
                         State::BulkString
                     }
@@ -165,6 +165,19 @@ mod tests {
             assert!(result.is_ok(), "Cmd processing FAILED");
             let response = result.unwrap();
             assert_eq!(response, ["SET","mango", "orange"]);
+        }        
+    }
+
+    #[test]
+    fn test_process_set_command_with_expiry_setting() {
+        let ping_command = vec!["*3\r\n$3\r\nSET\r\n$5\r\nmango\r\n$6\r\norange\r\n$2\r\nPX\r\n$3\r\n100\r\n"];
+        
+        for cmd in ping_command {
+            let result = process(cmd);
+        
+            assert!(result.is_ok(), "Cmd processing FAILED");
+            let response = result.unwrap();
+            assert_eq!(response, ["SET","mango", "orange", "PX", "100"]);
         }        
     }
 

@@ -1,8 +1,10 @@
 #![allow(unused_imports)]
-use std::{collections::HashMap, io::{Read, Write}, net::TcpListener, str, string, thread, sync::{Arc, Mutex}};
+use std::{collections::HashMap, io::{Read, Write}, net::TcpListener, ops::{Add, Index}, str, string, sync::{Arc, Mutex}, thread};
 
+mod db;
 mod resp;
 use bytes::buf;
+use chrono::Utc;
 
 fn main() {
 
@@ -21,7 +23,7 @@ fn main() {
 }
 
 fn handle_connection(
-    memory: Arc<Mutex<HashMap<String, String>>>, 
+    memory: Arc<Mutex<HashMap<String, db::Value>>>, 
     stream: Result<std::net::TcpStream, std::io::Error>) {
     match stream {
         Ok(mut stream) => {
@@ -52,19 +54,27 @@ fn handle_connection(
                         }
                          "set" => {
                             let mut db = memory.lock().unwrap();
-                            db.insert(
-                                parsed_collection[1].to_string(), 
-                                parsed_collection[2].to_string());
+                            
+                            let mut value = db::Value { val: parsed_collection[2].to_string(), expire_at: None};
+                            if let Some(index) = parsed_collection.iter().position(|s| s == "PX") {
+                                let milliseconds: i64 =  parsed_collection[index+1].parse().unwrap();
+                                value.expire_at = Some(Utc::now() + chrono::Duration::milliseconds(milliseconds));
+                            }
+                            db.insert(parsed_collection[1].to_string(), value);
+
                             stream
                                 .write(resp::create_simple_string("OK").as_bytes())
                                 .unwrap();
                          }
                         "get" => {
-                            let db: std::sync::MutexGuard<'_, HashMap<String, String>> = memory.lock().unwrap();
+                            let db: std::sync::MutexGuard<'_, HashMap<String, db::Value>> = memory.lock().unwrap();
                             match db.get(&parsed_collection[1]) {
+                                Some(v) if v.expire_at.map(|t| t <= Utc::now()).unwrap_or(false) => {
+                                    let _ = stream.write(resp::create_null_bulk_string().as_bytes());
+                                }
                                 Some(v) => {
                                     stream
-                                        .write(resp::create_bulk_string(v.as_str()).as_bytes())
+                                        .write(resp::create_bulk_string(v.val.as_str()).as_bytes())
                                         .unwrap();
                                 }
                                 None => {
