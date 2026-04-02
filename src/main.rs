@@ -39,21 +39,33 @@ fn handle_connection(
                 if let Ok(parsed_collection) = resp::process(cmd) {
                     match parsed_collection[0].to_lowercase().as_str() {
                         "ping" => {
-                            stream.write(resp::create_simple_string("PONG").as_bytes()).unwrap();
+                            stream
+                                .write(resp::create_simple_string("PONG").as_bytes())
+                                .unwrap();
                         }
                         "echo" => {
-                            stream.write(resp::create_bulk_string(parsed_collection[1..].join(" ").as_str()).as_bytes()).unwrap();
+                            stream
+                                .write(
+                                    resp::create_bulk_string(parsed_collection[1..].join(" ").as_str())
+                                        .as_bytes())
+                                .unwrap();
                         }
                          "set" => {
                             let mut db = memory.lock().unwrap();
-                            db.insert(parsed_collection[1].to_string(), parsed_collection[2].to_string());
-                            stream.write(resp::create_simple_string("OK").as_bytes()).unwrap();
+                            db.insert(
+                                parsed_collection[1].to_string(), 
+                                parsed_collection[2].to_string());
+                            stream
+                                .write(resp::create_simple_string("OK").as_bytes())
+                                .unwrap();
                          }
                         "get" => {
                             let db: std::sync::MutexGuard<'_, HashMap<String, String>> = memory.lock().unwrap();
                             match db.get(&parsed_collection[1]) {
                                 Some(v) => {
-                                    stream.write(resp::create_bulk_string(v.as_str()).as_bytes()).unwrap();
+                                    stream
+                                        .write(resp::create_bulk_string(v.as_str()).as_bytes())
+                                        .unwrap();
                                 }
                                 None => {
                                     let _ = stream.write(resp::create_null_bulk_string().as_bytes());
