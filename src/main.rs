@@ -1,23 +1,28 @@
 #![allow(unused_imports)]
-use std::{collections::HashSet, io::{Read, Write}, net::TcpListener, str, thread};
+use std::{collections::HashMap, io::{Read, Write}, net::TcpListener, str, string, thread, sync::{Arc, Mutex}};
 
 mod resp;
 use bytes::buf;
 
 fn main() {
-    // You can use print statements as follows for debugging, they'll be visible when running tests.
+
+    let memory = Arc::new(Mutex::new(HashMap::new()));
+
     println!("Logs from your program will appear here!");
 
     let listener = TcpListener::bind("127.0.0.1:6379").unwrap();
     
     for stream in listener.incoming() {
-        thread::spawn(|| {
-            handle_connection(stream);
+        let memory = Arc::clone(&memory);
+        thread::spawn(move || {
+            handle_connection(memory, stream);
         });
     }
 }
 
-fn handle_connection(stream: Result<std::net::TcpStream, std::io::Error>) {
+fn handle_connection(
+    memory: Arc<Mutex<HashMap<String, String>>>, 
+    stream: Result<std::net::TcpStream, std::io::Error>) {
     match stream {
         Ok(mut stream) => {
             println!("accepted new connection");
@@ -33,42 +38,29 @@ fn handle_connection(stream: Result<std::net::TcpStream, std::io::Error>) {
                 println!("{:?}", str::from_utf8(&buffer[..bytes_count]));
                 let r = resp::process(cmd);
                 match r {
-                    Ok(val) => {
-                        stream.write(val.as_bytes()).unwrap();
+                    Ok((cmd, args)) => {
+                        if cmd == "ping".to_string() {
+                            stream.write(resp::create_simple_string("PONG").as_bytes()).unwrap();
+                        } else if cmd == "echo".to_string() {
+                            stream.write(resp::create_bulk_string(args.join(" ").as_str()).as_bytes()).unwrap();
+                        } else if cmd == "set".to_string() {
+                            let mut db = memory.lock().unwrap();
+                            db.insert(args[0].clone(), args[1].clone());
+                            stream.write(resp::create_simple_string("OK").as_bytes()).unwrap();
+                        } else if cmd == "get".to_string() {
+                            let db = memory.lock().unwrap();
+                            match db.get(&args[0]) {
+                                Some(v) => {
+                                    stream.write(resp::create_bulk_string(v.as_str()).as_bytes()).unwrap();
+                                }
+                                None => {
+                                    let _ = stream.write(resp::create_null_bulk_string().as_bytes());
+                                },
+                            }
+                        }
                     }
                     Err(e) => println!("error: {}", e)
                 }
-
-                // let command_arr :Vec<&str> = str::from_utf8(&buffer[..bytes_count])
-                //     .unwrap()
-                //     .trim()
-                //     .split("\r\n")
-                //     .collect();
-                
-                // for argument in command_arr {
-                //     match argument.chars().next() {
-                //         Some('*') => {
-                //             // Handle array marker
-                //         }
-                //         Some('$') => {
-                //             // Handle bulk string marker
-                //         }
-                //         _ => {
-                //             match argument.to_lowercase().as_str() {
-                //                 "echo" => {}
-                //                 "ping" => {
-                //                     println!("found");
-                //                     stream.write(b"+PONG\r\n").unwrap();
-                //                 }
-                //                 _ => {
-                //                     let val = format!("${}\r\n{}\r\n",argument.len(), argument);
-                //                     stream.write(val.as_bytes()).unwrap();
-                //                 }
-                //             }
-                            
-                //         }
-                //     }
-                // }
             }
         }
         Err(e) => {
