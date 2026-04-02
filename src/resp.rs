@@ -7,33 +7,19 @@ enum State {
     BulkString,
 }
 
-pub fn process(cmd: &str) -> Result<(String, Vec<String>), &'static str> {
+pub fn process(cmd: &str) -> Result<Vec<String>, &'static str> {
     let parsed = parse(cmd);
     println!("{:?}", parsed);
 
-    match parsed {
-        Ok((_, bulk_strings)) => {
-            match bulk_strings[0].to_lowercase().as_str() {
-                "ping" => Result::Ok(("ping".to_string(), [].to_vec())),
-                "echo" => Result::Ok(("echo".to_string(), bulk_strings[1..].to_vec())),
-                "set" => Result::Ok(("set".to_string(), bulk_strings[1..].to_vec())),
-                "get" => Result::Ok(("get".to_string(), bulk_strings[1..].to_vec())),
-                _ => Err("Invalid command")
-            }
-        }
-        Err(_) => {
-            Err("Invalid command")
-        }
-    }    
+    parsed
 }
 
-fn parse(input:&str) -> Result<(Vec<String>, Vec<String>), &'static str> {
+fn parse(input:&str) -> Result<Vec<String>, &'static str> {
     let mut tokens: Vec<String> = Vec::new();
     let mut token = String::new();
     let mut chars = input.chars();
     let mut state = State::ArraySize;
 
-    let commands: Vec<String> = Vec::new();
     let mut bulk_strings: Vec<String> = Vec::new();
 
     loop {
@@ -120,7 +106,7 @@ fn parse(input:&str) -> Result<(Vec<String>, Vec<String>), &'static str> {
         tokens.push(token);
     }
     
-    Ok((commands, bulk_strings))
+    Ok(bulk_strings)
 }
 
 pub fn create_simple_string(val: &str) -> String {
@@ -152,8 +138,7 @@ mod tests {
         
             assert!(result.is_ok(), "Cmd processing FAILED");
             let response = result.unwrap();
-            assert_eq!(response.0, "ping");
-            assert_eq!(response.1, Vec::<String>::new());
+            assert_eq!(response, ["PING"]);
         }        
     }
 
@@ -166,8 +151,7 @@ mod tests {
         
             assert!(result.is_ok(), "Cmd processing FAILED");
             let response = result.unwrap();
-            assert_eq!(response.0, "echo");
-            assert_eq!(response.1, ["strawberry"]);
+            assert_eq!(response, ["ECHO", "strawberry"]);
         }        
     }
 
@@ -180,8 +164,7 @@ mod tests {
         
             assert!(result.is_ok(), "Cmd processing FAILED");
             let response = result.unwrap();
-            assert_eq!(response.0, "set");
-            assert_eq!(response.1, ["mango", "orange"]);
+            assert_eq!(response, ["SET","mango", "orange"]);
         }        
     }
 
@@ -194,8 +177,7 @@ mod tests {
         
             assert!(result.is_ok(), "Cmd processing FAILED");
             let response = result.unwrap();
-            assert_eq!(response.0, "get");
-            assert_eq!(response.1, ["mango"]);
+            assert_eq!(response, ["GET", "mango"]);
         }        
     }
 

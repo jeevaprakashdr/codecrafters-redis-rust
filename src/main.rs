@@ -36,20 +36,22 @@ fn handle_connection(
                 
                 let cmd = str::from_utf8(&buffer[..bytes_count]).unwrap();
                 println!("{:?}", str::from_utf8(&buffer[..bytes_count]));
-                let r = resp::process(cmd);
-                match r {
-                    Ok((cmd, args)) => {
-                        if cmd == "ping".to_string() {
+                if let Ok(parsed_collection) = resp::process(cmd) {
+                    match parsed_collection[0].to_lowercase().as_str() {
+                        "ping" => {
                             stream.write(resp::create_simple_string("PONG").as_bytes()).unwrap();
-                        } else if cmd == "echo".to_string() {
-                            stream.write(resp::create_bulk_string(args.join(" ").as_str()).as_bytes()).unwrap();
-                        } else if cmd == "set".to_string() {
+                        }
+                        "echo" => {
+                            stream.write(resp::create_bulk_string(parsed_collection[1..].join(" ").as_str()).as_bytes()).unwrap();
+                        }
+                         "set" => {
                             let mut db = memory.lock().unwrap();
-                            db.insert(args[0].clone(), args[1].clone());
+                            db.insert(parsed_collection[1].to_string(), parsed_collection[2].to_string());
                             stream.write(resp::create_simple_string("OK").as_bytes()).unwrap();
-                        } else if cmd == "get".to_string() {
-                            let db = memory.lock().unwrap();
-                            match db.get(&args[0]) {
+                         }
+                        "get" => {
+                            let db: std::sync::MutexGuard<'_, HashMap<String, String>> = memory.lock().unwrap();
+                            match db.get(&parsed_collection[1]) {
                                 Some(v) => {
                                     stream.write(resp::create_bulk_string(v.as_str()).as_bytes()).unwrap();
                                 }
@@ -58,8 +60,10 @@ fn handle_connection(
                                 },
                             }
                         }
+                        _ => {
+                            println!("Failed to process command")
+                        }
                     }
-                    Err(e) => println!("error: {}", e)
                 }
             }
         }
