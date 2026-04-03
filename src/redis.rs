@@ -1,31 +1,16 @@
-#![allow(unused_imports)]
-use std::{collections::HashMap, io::{Read, Write}, net::TcpListener, ops::{Add, Index}, str, string, sync::{Arc, Mutex}, thread};
-
-mod db;
-mod resp;
-mod redis;
-use bytes::buf;
+use std::collections::HashMap;
+use std::io::{Read, Write};
+use std::{
+    io::Error, 
+    net::TcpStream};
+use std::sync::{Arc, Mutex};
 use chrono::Utc;
 
-fn main() {
+use crate::{db, resp};
 
-    let memory = Arc::new(Mutex::new(HashMap::new()));
-
-    println!("Logs from your program will appear here!");
-
-    let listener = TcpListener::bind("127.0.0.1:6379").unwrap();
-    
-    for stream in listener.incoming() {
-        let memory = Arc::clone(&memory);
-        thread::spawn(move || {
-            redis::handle_connection(memory, stream);
-        });
-    }
-}
-
-fn handle_connection(
-    memory: Arc<Mutex<HashMap<String, db::Value>>>, 
-    stream: Result<std::net::TcpStream, std::io::Error>) {
+pub(crate) fn handle_connection(
+    memory: Arc<Mutex<std::collections::HashMap<String, db::Value>>>, 
+    stream: Result<TcpStream, Error>) {
     match stream {
         Ok(mut stream) => {
             println!("accepted new connection");
