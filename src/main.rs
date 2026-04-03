@@ -38,7 +38,7 @@ fn handle_connection(
                 
                 let cmd = str::from_utf8(&buffer[..bytes_count]).unwrap();
                 println!("{:?}", str::from_utf8(&buffer[..bytes_count]));
-                if let Ok(parsed_collection) = resp::process(cmd) {
+                if let Ok(parsed_collection) = resp::parse(cmd) {
                     match parsed_collection[0].to_lowercase().as_str() {
                         "ping" => {
                             stream

@@ -7,14 +7,7 @@ enum State {
     BulkString,
 }
 
-pub fn process(cmd: &str) -> Result<Vec<String>, &'static str> {
-    let parsed = parse(cmd);
-    println!("{:?}", parsed);
-
-    parsed
-}
-
-fn parse(input:&str) -> Result<Vec<String>, &'static str> {
+pub fn parse(input:&str) -> Result<Vec<String>, &'static str> {
     let mut tokens: Vec<String> = Vec::new();
     let mut token = String::new();
     let mut chars = input.chars();
@@ -106,6 +99,7 @@ fn parse(input:&str) -> Result<Vec<String>, &'static str> {
         tokens.push(token);
     }
     
+    println!("{:?}", bulk_strings);
     Ok(bulk_strings)
 }
 
@@ -127,14 +121,14 @@ mod tests {
         create_simple_string, 
         create_bulk_string, 
         create_null_bulk_string,
-        process};
+        parse};
 
     #[test]
-    fn test_process_ping_command() {
+    fn test_parse_ping_command() {
         let ping_command = vec!["*1\r\n$4\r\nPING\r\n"];
         
         for cmd in ping_command {
-            let result = process(cmd);
+            let result = parse(cmd);
         
             assert!(result.is_ok(), "Cmd processing FAILED");
             let response = result.unwrap();
@@ -143,11 +137,11 @@ mod tests {
     }
 
     #[test]
-    fn test_process_echo_command() {
+    fn test_parse_echo_command() {
         let ping_command = vec!["*2\r\n$4\r\nECHO\r\n$10\r\nstrawberry\r\n"];
         
         for cmd in ping_command {
-            let result = process(cmd);
+            let result = parse(cmd);
         
             assert!(result.is_ok(), "Cmd processing FAILED");
             let response = result.unwrap();
@@ -156,11 +150,11 @@ mod tests {
     }
 
     #[test]
-    fn test_process_set_command() {
+    fn test_parse_set_command() {
         let ping_command = vec!["*3\r\n$3\r\nSET\r\n$5\r\nmango\r\n$6\r\norange\r\n"];
         
         for cmd in ping_command {
-            let result = process(cmd);
+            let result = parse(cmd);
         
             assert!(result.is_ok(), "Cmd processing FAILED");
             let response = result.unwrap();
@@ -169,11 +163,11 @@ mod tests {
     }
 
     #[test]
-    fn test_process_set_command_with_expiry_setting() {
+    fn test_parse_set_command_with_expiry_setting() {
         let ping_command = vec!["*3\r\n$3\r\nSET\r\n$5\r\nmango\r\n$6\r\norange\r\n$2\r\nPX\r\n$3\r\n100\r\n"];
         
         for cmd in ping_command {
-            let result = process(cmd);
+            let result = parse(cmd);
         
             assert!(result.is_ok(), "Cmd processing FAILED");
             let response = result.unwrap();
@@ -182,11 +176,11 @@ mod tests {
     }
 
     #[test]
-    fn test_process_get_command() {
+    fn test_parse_get_command() {
         let ping_command = vec!["*3\r\n$3\r\nGET\r\n$5\r\nmango\r\n"];
         
         for cmd in ping_command {
-            let result = process(cmd);
+            let result = parse(cmd);
         
             assert!(result.is_ok(), "Cmd processing FAILED");
             let response = result.unwrap();
