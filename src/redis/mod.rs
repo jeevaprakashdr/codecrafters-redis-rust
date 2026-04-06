@@ -30,6 +30,7 @@ pub fn handle_connection(
                 println!("{:?}", str::from_utf8(&buffer[..bytes_count]));
 
                 let cmd = str::from_utf8(&buffer[..bytes_count]).unwrap();
+                println!("{:?}", cmd);
                 if let Ok(parsed_command_array) = resp::parse(cmd) {
                     match Command::execute(parsed_command_array) {
                         Ok(response) => {

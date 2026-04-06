@@ -37,8 +37,9 @@ fn execute_rpush(command_array: Vec<String>) -> Result<String, &'static str> {
     match db.get_mut(command_array[1].to_string()) {
         Some(record) => {
             record.val = format!("{},{}", record.val, command_array[2].to_string());
-            
-            Ok(resp::create_simple_integer(1))
+            Ok(resp::create_simple_integer(
+                i32::try_from(record.val.split(',').count())
+                    .unwrap_or(1)))
         },
         None => {
             let value = db::Value { val: command_array[2].to_string(), expire_at: None};
