@@ -103,6 +103,10 @@ pub fn parse(input:&str) -> Result<Vec<String>, &'static str> {
     Ok(bulk_strings)
 }
 
+pub fn create_simple_integer(val: i32) -> String {
+    format!(":{}\r\n", val)
+}
+
 pub fn create_simple_string(val: &str) -> String {
     format!("+{}\r\n", val)
 }
@@ -117,11 +121,21 @@ pub fn create_null_bulk_string() -> String {
 
 #[cfg(test)]
 mod tests {
-    use crate::resp::{
+    use crate::redis::resp::{
+        create_simple_integer,
         create_simple_string, 
         create_bulk_string, 
         create_null_bulk_string,
         parse};
+
+    #[test]
+    fn test_create_simple_integer() {
+        let val = 123;
+
+        let simple_integer = create_simple_integer(val);
+
+        assert_eq!(format!(":{}\r\n", val), simple_integer)
+    }
 
     #[test]
     fn test_parse_ping_command() {

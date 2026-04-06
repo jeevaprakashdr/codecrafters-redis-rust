@@ -1,0 +1,106 @@
+use std::{fmt::Display, str::FromStr, sync::Arc};
+
+use chrono::Utc;
+
+use crate::redis::resp;
+use crate::redis::db::{self, DB};
+
+
+#[derive(Debug, PartialEq)]
+pub enum Command {
+    Ping, 
+    Echo,
+    Set,
+    Get,
+    Rpush,
+}
+
+impl Command {
+    pub fn execute(
+        command_array: Vec<String>) -> Result<String, &'static str> {
+        match Command::from_str(command_array[0].as_str()) {
+            Ok(Command::Ping) => Ok(resp::create_simple_string("PONG")),
+            Ok(Command::Echo) => Ok(resp::create_bulk_string(command_array[1..].join(" ").as_str())),
+            Ok(Command::Set) => execute_set(command_array),
+            Ok(Command::Get) => execute_get(command_array),
+            Ok(Command::Rpush) => execute_rpush(command_array),
+            _ => {
+                Err("Failed to process command")
+            }
+        }
+    }
+}
+
+fn execute_rpush(command_array: Vec<String>) -> Result<String, &'static str> {
+    let in_memory_db_clone = Arc::clone(&DB);
+    let mut db: std::sync::MutexGuard<'_, db::InMemoryDb> = in_memory_db_clone.lock().unwrap();
+    match db.get_mut(command_array[1].to_string()) {
+        Some(record) => {
+            record.val = format!("{},{}", record.val, command_array[2].to_string());
+            
+            Ok(resp::create_simple_integer(1))
+        },
+        None => {
+            let value = db::Value { val: command_array[2].to_string(), expire_at: None};
+            db.insert(command_array[1].to_string(), value);
+            Ok(resp::create_simple_integer(1))
+        }
+    }
+}
+
+fn execute_get(command_array: Vec<String>) -> Result<String, &'static str> {
+    let in_memory_db_clone = Arc::clone(&DB);
+    let db: std::sync::MutexGuard<'_, db::InMemoryDb> = in_memory_db_clone.lock().unwrap();
+    match db.get(command_array[1].to_string()) {
+        Some(v) if v.expire_at.map(|t| t <= Utc::now()).unwrap_or(false) => {
+            Ok(resp::create_null_bulk_string())
+        }
+        Some(v) => {
+            Ok(resp::create_bulk_string(v.val.as_str()))
+        }
+        None => {
+            Ok(resp::create_null_bulk_string())
+        },
+    }
+}
+
+fn execute_set(command_array: Vec<String>) -> Result<String, &'static str> {
+    let in_memory_db_clone = Arc::clone(&DB);
+    let mut db: std::sync::MutexGuard<'_, db::InMemoryDb> = in_memory_db_clone.lock().unwrap();
+    let mut value = db::Value { val: command_array[2].to_string(), expire_at: None};
+    if let Some(index) = command_array.iter().position(|s| s == "PX") {
+        let milliseconds: i64 =  command_array[index+1].parse().unwrap();
+        value.expire_at = Some(Utc::now() + chrono::Duration::milliseconds(milliseconds));
+    }
+    db.insert(command_array[1].to_string(), value);
+    Ok(resp::create_simple_string("OK"))
+}
+
+
+impl FromStr for Command {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.to_lowercase().as_str() {
+            "ping" => Ok(Command::Ping),
+            "echo" => Ok(Command::Echo),
+            "set" => Ok(Command::Set),
+            "get" => Ok(Command::Get),
+            "rpush" => Ok(Command::Rpush),
+            _ => Err(format!("unknown command: {}", s))
+        }
+    }
+}
+
+impl Display for Command {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Command::Ping => write!(f, "ping"),
+            Command::Echo => write!(f, "echo"),
+            Command::Set => write!(f, "set"),
+            Command::Get => write!(f, "get"),
+            Command::Rpush => write!(f, "rpush"),
+        }
+    }
+}
+
