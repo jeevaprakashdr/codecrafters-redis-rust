@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{self, HashMap};
 use std::fmt::Display;
 use std::io::{Read, Write};
 use std::str::FromStr;
@@ -44,7 +44,7 @@ impl Display for Command {
 }
 
 pub fn handle_connection(
-    memory: Arc<Mutex<std::collections::HashMap<String, db::Value>>>, 
+    memory: Arc<Mutex<HashMap<String, db::Value>>>, 
     stream: Result<TcpStream, Error>) {
     match stream {
         Ok(mut stream) => {
@@ -60,8 +60,8 @@ pub fn handle_connection(
                 println!("{:?}", str::from_utf8(&buffer[..bytes_count]));
 
                 let cmd = str::from_utf8(&buffer[..bytes_count]).unwrap();
-                if let Ok(parsed_collection) = resp::parse(cmd) {
-                    match execute_command(&memory, parsed_collection) {
+                if let Ok(parsed_command_array) = resp::parse(cmd) {
+                    match execute_command(&memory, parsed_command_array) {
                         Ok(response) => {
                             stream.write(response.as_bytes()).unwrap();
                         },
@@ -80,29 +80,29 @@ pub fn handle_connection(
 
 fn execute_command(
     memory: &Arc<Mutex<HashMap<String, db::Value>>>,
-    parsed_collection: Vec<String>) -> Result<String, &'static str> {
-    match Command::from_str(parsed_collection[0].as_str()) {
+    command_array: Vec<String>) -> Result<String, &'static str> {
+    match Command::from_str(command_array[0].as_str()) {
         Ok(Command::Ping) => {
             Ok(resp::create_simple_string("PONG"))
         }
         Ok(Command::Echo) => {
-            Ok(resp::create_bulk_string(parsed_collection[1..].join(" ").as_str()))
+            Ok(resp::create_bulk_string(command_array[1..].join(" ").as_str()))
         }
         Ok(Command::Set) => {
             let mut db = memory.lock().unwrap();
         
-            let mut value = db::Value { val: parsed_collection[2].to_string(), expire_at: None};
-            if let Some(index) = parsed_collection.iter().position(|s| s == "PX") {
-                let milliseconds: i64 =  parsed_collection[index+1].parse().unwrap();
+            let mut value = db::Value { val: command_array[2].to_string(), expire_at: None};
+            if let Some(index) = command_array.iter().position(|s| s == "PX") {
+                let milliseconds: i64 =  command_array[index+1].parse().unwrap();
                 value.expire_at = Some(Utc::now() + chrono::Duration::milliseconds(milliseconds));
             }
-            db.insert(parsed_collection[1].to_string(), value);
+            db.insert(command_array[1].to_string(), value);
 
             Ok(resp::create_simple_string("OK"))
          }
         Ok(Command::Get) => {
             let db: std::sync::MutexGuard<'_, HashMap<String, db::Value>> = memory.lock().unwrap();
-            match db.get(&parsed_collection[1]) {
+            match db.get(&command_array[1]) {
                 Some(v) if v.expire_at.map(|t| t <= Utc::now()).unwrap_or(false) => {
                     Ok(resp::create_null_bulk_string())
                 }
