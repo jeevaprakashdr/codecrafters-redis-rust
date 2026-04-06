@@ -1,5 +1,7 @@
 use std::collections::HashMap;
+use std::fmt::Display;
 use std::io::{Read, Write};
+use std::str::FromStr;
 use std::{
     io::Error, 
     net::TcpStream};
@@ -8,7 +10,40 @@ use chrono::Utc;
 
 use crate::{db, resp};
 
-pub(crate) fn handle_connection(
+#[derive(Debug, PartialEq)]
+pub enum Command {
+    Ping, 
+    Echo,
+    Set,
+    Get
+}
+
+impl FromStr for Command {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.to_lowercase().as_str() {
+            "ping" => Ok(Command::Ping),
+            "echo" => Ok(Command::Echo),
+            "set" => Ok(Command::Set),
+            "get" => Ok(Command::Get),
+            _ => Err(format!("unknown command: {}", s))
+        }
+    }
+}
+
+impl Display for Command {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Command::Ping => write!(f, "ping"),
+            Command::Echo => write!(f, "ping"),
+            Command::Set => write!(f, "ping"),
+            Command::Get => write!(f, "ping"),
+        }
+    }
+}
+
+pub fn handle_connection(
     memory: Arc<Mutex<std::collections::HashMap<String, db::Value>>>, 
     stream: Result<TcpStream, Error>) {
     match stream {
@@ -26,58 +61,61 @@ pub(crate) fn handle_connection(
 
                 let cmd = str::from_utf8(&buffer[..bytes_count]).unwrap();
                 if let Ok(parsed_collection) = resp::parse(cmd) {
-                    match parsed_collection[0].to_lowercase().as_str() {
-                        "ping" => {
-                            stream
-                                .write(resp::create_simple_string("PONG").as_bytes())
-                                .unwrap();
-                        }
-                        "echo" => {
-                            stream
-                                .write(
-                                    resp::create_bulk_string(parsed_collection[1..].join(" ").as_str())
-                                        .as_bytes())
-                                .unwrap();
-                        }
-                         "set" => {
-                            let mut db = memory.lock().unwrap();
-                            
-                            let mut value = db::Value { val: parsed_collection[2].to_string(), expire_at: None};
-                            if let Some(index) = parsed_collection.iter().position(|s| s == "PX") {
-                                let milliseconds: i64 =  parsed_collection[index+1].parse().unwrap();
-                                value.expire_at = Some(Utc::now() + chrono::Duration::milliseconds(milliseconds));
-                            }
-                            db.insert(parsed_collection[1].to_string(), value);
-
-                            stream
-                                .write(resp::create_simple_string("OK").as_bytes())
-                                .unwrap();
-                         }
-                        "get" => {
-                            let db: std::sync::MutexGuard<'_, HashMap<String, db::Value>> = memory.lock().unwrap();
-                            match db.get(&parsed_collection[1]) {
-                                Some(v) if v.expire_at.map(|t| t <= Utc::now()).unwrap_or(false) => {
-                                    let _ = stream.write(resp::create_null_bulk_string().as_bytes());
-                                }
-                                Some(v) => {
-                                    stream
-                                        .write(resp::create_bulk_string(v.val.as_str()).as_bytes())
-                                        .unwrap();
-                                }
-                                None => {
-                                    let _ = stream.write(resp::create_null_bulk_string().as_bytes());
-                                },
-                            }
-                        }
-                        _ => {
-                            println!("Failed to process command")
-                        }
+                    match execute_command(&memory, parsed_collection) {
+                        Ok(response) => {
+                            stream.write(response.as_bytes()).unwrap();
+                        },
+                        Err(e) => {
+                            println!("{}", e);
+                        },
                     }
                 }
             }
         }
         Err(e) => {
             println!("error: {}", e);
+        }
+    }
+}
+
+fn execute_command(
+    memory: &Arc<Mutex<HashMap<String, db::Value>>>,
+    parsed_collection: Vec<String>) -> Result<String, &'static str> {
+    match Command::from_str(parsed_collection[0].as_str()) {
+        Ok(Command::Ping) => {
+            Ok(resp::create_simple_string("PONG"))
+        }
+        Ok(Command::Echo) => {
+            Ok(resp::create_bulk_string(parsed_collection[1..].join(" ").as_str()))
+        }
+        Ok(Command::Set) => {
+            let mut db = memory.lock().unwrap();
+        
+            let mut value = db::Value { val: parsed_collection[2].to_string(), expire_at: None};
+            if let Some(index) = parsed_collection.iter().position(|s| s == "PX") {
+                let milliseconds: i64 =  parsed_collection[index+1].parse().unwrap();
+                value.expire_at = Some(Utc::now() + chrono::Duration::milliseconds(milliseconds));
+            }
+            db.insert(parsed_collection[1].to_string(), value);
+
+            Ok(resp::create_simple_string("OK"))
+         }
+        Ok(Command::Get) => {
+            let db: std::sync::MutexGuard<'_, HashMap<String, db::Value>> = memory.lock().unwrap();
+            match db.get(&parsed_collection[1]) {
+                Some(v) if v.expire_at.map(|t| t <= Utc::now()).unwrap_or(false) => {
+                    Ok(resp::create_null_bulk_string())
+                }
+                Some(v) => {
+                    Ok(resp::create_bulk_string(v.val.as_str()))
+                }
+                None => {
+                    Ok(resp::create_null_bulk_string())
+                },
+            }
+        }
+        _ => {
+            Err("Failed to process command")
         }
     }
 }
