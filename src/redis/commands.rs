@@ -13,6 +13,7 @@ pub enum Command {
     Set,
     Get,
     Rpush,
+    Lrange,
 }
 
 impl Command {
@@ -24,11 +25,42 @@ impl Command {
             Ok(Command::Set) => execute_set(command_array),
             Ok(Command::Get) => execute_get(command_array),
             Ok(Command::Rpush) => execute_rpush(command_array),
+            Ok(Command::Lrange) => execute_lrange(command_array),
             _ => {
                 Err("Failed to process command")
             }
         }
     }
+}
+fn execute_lrange(command_array: Vec<String>) -> Result<String, &'static str> {
+    let in_memory_db_clone = Arc::clone(&DB);
+    let db: std::sync::MutexGuard<'_, db::InMemoryDb> = in_memory_db_clone.lock().unwrap();
+
+    if let Some(v) = db.get(command_array[1].to_string()) {
+        let start_index = i32::from_str(command_array[2].as_str()).unwrap_or(0);
+        let mut stop_index = i32::from_str(command_array[3].as_str()).unwrap_or(0);
+        let collection: Vec<&str> = v.val.split(',').collect();
+
+        // If the start index is greater than the stop index, an empty array is returned.
+        // If the start index is greater than or equal to the list's length, an empty array is returned.
+        if start_index > stop_index 
+            || start_index >= collection.iter().len().try_into().unwrap_or(0) {
+            return Ok(resp::create_empty_array())
+        }
+        
+        // If the stop index is greater than or equal to the list's length, the stop index is treated as the last element.
+        if stop_index >= collection.iter().len().try_into().unwrap_or(0) {
+            stop_index = collection.iter().len().try_into().unwrap_or(1) - 1; // could be confusing 
+            return Ok(resp::create_array(&collection[start_index as usize ..=stop_index as usize]))
+        }
+
+        return Ok(resp::create_array(&collection[start_index as usize ..=stop_index as usize]))
+    }
+    else {
+        return Ok(resp::create_empty_array())
+    }
+
+    
 }
 
 fn execute_rpush(command_array: Vec<String>) -> Result<String, &'static str> {
@@ -88,6 +120,7 @@ impl FromStr for Command {
             "set" => Ok(Command::Set),
             "get" => Ok(Command::Get),
             "rpush" => Ok(Command::Rpush),
+            "lrange" => Ok(Command::Lrange),
             _ => Err(format!("unknown command: {}", s))
         }
     }
@@ -101,6 +134,7 @@ impl Display for Command {
             Command::Set => write!(f, "set"),
             Command::Get => write!(f, "get"),
             Command::Rpush => write!(f, "rpush"),
+            Command::Lrange => write!(f, "lrange"),
         }
     }
 }

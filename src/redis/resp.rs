@@ -69,7 +69,7 @@ pub fn parse(input:&str) -> Result<Vec<String>, &'static str> {
             }
             State::BulkString => {
                 match current {
-                    Some('a'..='z') | Some('A'..='Z') | Some('0'..='9') => {
+                    Some('a'..='z') | Some('A'..='Z') | Some('0'..='9') | Some('_') => {
                         token.push(current.unwrap());
                         State::BulkString
                     }
@@ -103,6 +103,15 @@ pub fn parse(input:&str) -> Result<Vec<String>, &'static str> {
     Ok(bulk_strings)
 }
 
+pub fn create_array(collection: &[&str]) -> String {
+    let collection_string = collection.iter().map(|r| format!("${}\r\n{}\r\n", r.len(), r)).collect::<Vec<_>>().join("");
+    format!("*{}\r\n{}", collection.iter().len(), collection_string)
+}
+
+pub fn create_empty_array() -> String {
+    "*0\r\n".to_string()
+}
+
 pub fn create_simple_integer(val: i32) -> String {
     format!(":{}\r\n", val)
 }
@@ -122,6 +131,8 @@ pub fn create_null_bulk_string() -> String {
 #[cfg(test)]
 mod tests {
     use crate::redis::resp::{
+        create_array,
+        create_empty_array,
         create_simple_integer,
         create_simple_string, 
         create_bulk_string, 
@@ -152,9 +163,9 @@ mod tests {
 
     #[test]
     fn test_parse_echo_command() {
-        let ping_command = vec!["*2\r\n$4\r\nECHO\r\n$10\r\nstrawberry\r\n"];
+        let echo_command = vec!["*2\r\n$4\r\nECHO\r\n$10\r\nstrawberry\r\n"];
         
-        for cmd in ping_command {
+        for cmd in echo_command {
             let result = parse(cmd);
         
             assert!(result.is_ok(), "Cmd processing FAILED");
@@ -165,9 +176,9 @@ mod tests {
 
     #[test]
     fn test_parse_set_command() {
-        let ping_command = vec!["*3\r\n$3\r\nSET\r\n$5\r\nmango\r\n$6\r\norange\r\n"];
+        let set_command = vec!["*3\r\n$3\r\nSET\r\n$5\r\nmango\r\n$6\r\norange\r\n"];
         
-        for cmd in ping_command {
+        for cmd in set_command {
             let result = parse(cmd);
         
             assert!(result.is_ok(), "Cmd processing FAILED");
@@ -178,9 +189,9 @@ mod tests {
 
     #[test]
     fn test_parse_set_command_with_expiry_setting() {
-        let ping_command = vec!["*3\r\n$3\r\nSET\r\n$5\r\nmango\r\n$6\r\norange\r\n$2\r\nPX\r\n$3\r\n100\r\n"];
+        let set_command = vec!["*3\r\n$3\r\nSET\r\n$5\r\nmango\r\n$6\r\norange\r\n$2\r\nPX\r\n$3\r\n100\r\n"];
         
-        for cmd in ping_command {
+        for cmd in set_command {
             let result = parse(cmd);
         
             assert!(result.is_ok(), "Cmd processing FAILED");
@@ -191,14 +202,30 @@ mod tests {
 
     #[test]
     fn test_parse_get_command() {
-        let ping_command = vec!["*3\r\n$3\r\nGET\r\n$5\r\nmango\r\n"];
+        let inputs:Vec<(&str, &[&str])> = vec![
+            ("*3\r\n$3\r\nGET\r\n$5\r\nmango\r\n", &["GET", "mango"]),
+            ("*3\r\n$3\r\nGET\r\n$5\r\nmango_1_2\r\n", &["GET", "mango_1_2"]),
+            ];
         
-        for cmd in ping_command {
+        for (cmd, expected) in inputs {
             let result = parse(cmd);
         
             assert!(result.is_ok(), "Cmd processing FAILED");
             let response = result.unwrap();
-            assert_eq!(response, ["GET", "mango"]);
+            assert_eq!(response, expected);
+        }        
+    }
+
+    #[test]
+    fn test_parse_lrange_command() {
+        let lrange_command = vec!["*4\r\n$6\r\nLRANGE\r\n$14\r\nmissing_key_82\r\n$1\r\n0\r\n$1\r\n1\r\n"];
+        
+        for cmd in lrange_command {
+            let result = parse(cmd);
+        
+            assert!(result.is_ok(), "Cmd processing FAILED");
+            let response = result.unwrap();
+            assert_eq!(response, ["LRANGE", "missing_key_82", "0", "1"]);
         }        
     }
 
@@ -225,4 +252,24 @@ mod tests {
         let null_bulk_string = create_null_bulk_string();
         assert_eq!("$-1\r\n", null_bulk_string)
     }
+
+    #[test]
+    fn test_create_empty_array() {
+        assert_eq!("*0\r\n".to_string(), create_empty_array())
+    }
+
+    #[test]
+    fn test_create_array() {
+        let input: Vec<(&[&str], &str)> = vec![
+            (&["a"], "*1\r\n$1\r\na\r\n"),
+            (&["a", "b"], "*2\r\n$1\r\na\r\n$1\r\nb\r\n"),
+        ];
+        
+        for (arr, expected) in input {
+            let actual = create_array(arr);
+    
+            assert_eq!(expected.to_string(), actual);
+        }
+    }
 }
+
