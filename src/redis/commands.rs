@@ -36,15 +36,15 @@ fn execute_rpush(command_array: Vec<String>) -> Result<String, &'static str> {
     let mut db: std::sync::MutexGuard<'_, db::InMemoryDb> = in_memory_db_clone.lock().unwrap();
     match db.get_mut(command_array[1].to_string()) {
         Some(record) => {
-            record.val = format!("{},{}", record.val, command_array[2].to_string());
+            record.val = format!("{},{}", record.val, command_array[2..].join(","));
             Ok(resp::create_simple_integer(
                 i32::try_from(record.val.split(',').count())
                     .unwrap_or(1)))
         },
         None => {
-            let value = db::Value { val: command_array[2].to_string(), expire_at: None};
+            let value = db::Value { val: command_array[2..].join(","), expire_at: None};
             db.insert(command_array[1].to_string(), value);
-            Ok(resp::create_simple_integer(1))
+            Ok(resp::create_simple_integer(i32::try_from(command_array[2..].iter().count()).unwrap_or(1)))
         }
     }
 }
