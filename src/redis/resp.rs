@@ -69,7 +69,7 @@ pub fn parse(input:&str) -> Result<Vec<String>, &'static str> {
             }
             State::BulkString => {
                 match current {
-                    Some('a'..='z') | Some('A'..='Z') | Some('0'..='9') | Some('_') => {
+                    Some('a'..='z') | Some('A'..='Z') | Some('0'..='9') | Some('_') | Some('-') => {
                         token.push(current.unwrap());
                         State::BulkString
                     }
@@ -153,6 +153,7 @@ mod tests {
         let inputs:Vec<(&str, &[&str])> = vec![
             ("*3\r\n$3\r\nGET\r\n$5\r\nmango\r\n", &["GET", "mango"]),
             ("*3\r\n$3\r\nGET\r\n$5\r\nmango_1_2\r\n", &["GET", "mango_1_2"]),
+            ("*3\r\n$3\r\nGET\r\n$2\r\n-1\r\n", &["GET", "-1"]),
             ("*3\r\n$3\r\nSET\r\n$5\r\nmango\r\n$6\r\norange\r\n$2\r\nPX\r\n$3\r\n100\r\n", &["SET", "mango", "orange", "PX", "100"]),
             ];
         
