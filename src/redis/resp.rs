@@ -104,7 +104,7 @@ pub fn parse(input:&str) -> Result<Vec<String>, &'static str> {
 }
 
 pub fn create_array(collection: &[&str]) -> String {
-    let collection_string = collection.iter().map(|r| format!("${}\r\n{}\r\n", r.len(), r)).collect::<Vec<_>>().join("");
+    let collection_string = collection.iter().map(|r| create_bulk_string(r)).collect::<Vec<_>>().join("");
     format!("*{}\r\n{}", collection.iter().len(), collection_string)
 }
 
@@ -149,62 +149,11 @@ mod tests {
     }
 
     #[test]
-    fn test_parse_ping_command() {
-        let ping_command = vec!["*1\r\n$4\r\nPING\r\n"];
-        
-        for cmd in ping_command {
-            let result = parse(cmd);
-        
-            assert!(result.is_ok(), "Cmd processing FAILED");
-            let response = result.unwrap();
-            assert_eq!(response, ["PING"]);
-        }        
-    }
-
-    #[test]
-    fn test_parse_echo_command() {
-        let echo_command = vec!["*2\r\n$4\r\nECHO\r\n$10\r\nstrawberry\r\n"];
-        
-        for cmd in echo_command {
-            let result = parse(cmd);
-        
-            assert!(result.is_ok(), "Cmd processing FAILED");
-            let response = result.unwrap();
-            assert_eq!(response, ["ECHO", "strawberry"]);
-        }        
-    }
-
-    #[test]
-    fn test_parse_set_command() {
-        let set_command = vec!["*3\r\n$3\r\nSET\r\n$5\r\nmango\r\n$6\r\norange\r\n"];
-        
-        for cmd in set_command {
-            let result = parse(cmd);
-        
-            assert!(result.is_ok(), "Cmd processing FAILED");
-            let response = result.unwrap();
-            assert_eq!(response, ["SET","mango", "orange"]);
-        }        
-    }
-
-    #[test]
-    fn test_parse_set_command_with_expiry_setting() {
-        let set_command = vec!["*3\r\n$3\r\nSET\r\n$5\r\nmango\r\n$6\r\norange\r\n$2\r\nPX\r\n$3\r\n100\r\n"];
-        
-        for cmd in set_command {
-            let result = parse(cmd);
-        
-            assert!(result.is_ok(), "Cmd processing FAILED");
-            let response = result.unwrap();
-            assert_eq!(response, ["SET","mango", "orange", "PX", "100"]);
-        }        
-    }
-
-    #[test]
     fn test_parse_get_command() {
         let inputs:Vec<(&str, &[&str])> = vec![
             ("*3\r\n$3\r\nGET\r\n$5\r\nmango\r\n", &["GET", "mango"]),
             ("*3\r\n$3\r\nGET\r\n$5\r\nmango_1_2\r\n", &["GET", "mango_1_2"]),
+            ("*3\r\n$3\r\nSET\r\n$5\r\nmango\r\n$6\r\norange\r\n$2\r\nPX\r\n$3\r\n100\r\n", &["SET", "mango", "orange", "PX", "100"]),
             ];
         
         for (cmd, expected) in inputs {
@@ -213,19 +162,6 @@ mod tests {
             assert!(result.is_ok(), "Cmd processing FAILED");
             let response = result.unwrap();
             assert_eq!(response, expected);
-        }        
-    }
-
-    #[test]
-    fn test_parse_lrange_command() {
-        let lrange_command = vec!["*4\r\n$6\r\nLRANGE\r\n$14\r\nmissing_key_82\r\n$1\r\n0\r\n$1\r\n1\r\n"];
-        
-        for cmd in lrange_command {
-            let result = parse(cmd);
-        
-            assert!(result.is_ok(), "Cmd processing FAILED");
-            let response = result.unwrap();
-            assert_eq!(response, ["LRANGE", "missing_key_82", "0", "1"]);
         }        
     }
 

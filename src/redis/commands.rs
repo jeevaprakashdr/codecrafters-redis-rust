@@ -44,13 +44,13 @@ fn execute_lrange(command_array: Vec<String>) -> Result<String, &'static str> {
         // If the start index is greater than the stop index, an empty array is returned.
         // If the start index is greater than or equal to the list's length, an empty array is returned.
         if start_index > stop_index 
-            || start_index >= collection.iter().len().try_into().unwrap_or(0) {
+            || start_index >= collection.len().try_into().unwrap_or(0) {
             return Ok(resp::create_empty_array())
         }
         
         // If the stop index is greater than or equal to the list's length, the stop index is treated as the last element.
-        if stop_index >= collection.iter().len().try_into().unwrap_or(0) {
-            stop_index = collection.iter().len().try_into().unwrap_or(1) - 1; // could be confusing 
+        if stop_index >= collection.len().try_into().unwrap_or(0) {
+            stop_index = collection.len().try_into().unwrap_or(1) - 1; // could be confusing 
             return Ok(resp::create_array(&collection[start_index as usize ..=stop_index as usize]))
         }
 
@@ -58,9 +58,7 @@ fn execute_lrange(command_array: Vec<String>) -> Result<String, &'static str> {
     }
     else {
         return Ok(resp::create_empty_array())
-    }
-
-    
+    }    
 }
 
 fn execute_rpush(command_array: Vec<String>) -> Result<String, &'static str> {
