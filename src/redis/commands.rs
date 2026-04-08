@@ -1,10 +1,8 @@
 use std::{fmt::Display, str::FromStr, sync::Arc};
-
 use chrono::Utc;
 
 use crate::redis::resp;
 use crate::redis::db::{self, DB};
-
 
 #[derive(Debug, PartialEq)]
 pub enum Command {
@@ -34,6 +32,7 @@ impl Command {
         }
     }
 }
+
 fn execute_lrange(command_array: Vec<String>) -> Result<String, &'static str> {
     let in_memory_db_clone = Arc::clone(&DB);
     let db: std::sync::MutexGuard<'_, db::InMemoryDb> = in_memory_db_clone.lock().unwrap();
@@ -144,7 +143,6 @@ fn execute_set(command_array: Vec<String>) -> Result<String, &'static str> {
     db.insert(command_array[1].to_string(), value);
     Ok(resp::create_simple_string("OK"))
 }
-
 
 impl FromStr for Command {
     type Err = String;
