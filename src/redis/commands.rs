@@ -38,8 +38,8 @@ impl Command {
 }
 
 fn execute_lpop(command_array: Vec<String>) -> Result<String, &'static str> {
-    let in_memory_db_clone = Arc::clone(&DB);
-    let mut db: std::sync::MutexGuard<'_, db::InMemoryDb> = in_memory_db_clone.lock().unwrap();
+    let in_memory_db = Arc::clone(&DB);
+    let mut db: std::sync::MutexGuard<'_, db::InMemoryDb> = in_memory_db.lock().unwrap();
 
     match db.get_mut(command_array[1].to_string()) {
         Some(data) => {
@@ -59,8 +59,8 @@ fn execute_lpop(command_array: Vec<String>) -> Result<String, &'static str> {
 }
 
 fn execute_llen(command_array: Vec<String>) -> Result<String, &'static str> {
-    let in_memory_db_clone = Arc::clone(&DB);
-    let db: std::sync::MutexGuard<'_, db::InMemoryDb> = in_memory_db_clone.lock().unwrap();
+    let in_memory_db = Arc::clone(&DB);
+    let db: std::sync::MutexGuard<'_, db::InMemoryDb> = in_memory_db.lock().unwrap();
 
     match db.get(command_array[1].to_string()) {
         Some(data) => {
@@ -79,8 +79,8 @@ fn execute_llen(command_array: Vec<String>) -> Result<String, &'static str> {
 }
 
 fn execute_lrange(command_array: Vec<String>) -> Result<String, &'static str> {
-    let in_memory_db_clone = Arc::clone(&DB);
-    let db: std::sync::MutexGuard<'_, db::InMemoryDb> = in_memory_db_clone.lock().unwrap();
+    let in_memory_db = Arc::clone(&DB);
+    let db: std::sync::MutexGuard<'_, db::InMemoryDb> = in_memory_db.lock().unwrap();
 
     if let Some(v) = db.get(command_array[1].to_string()) {
         let collection: Vec<&str> = v.val.split(',').collect();
@@ -113,8 +113,8 @@ fn execute_lrange(command_array: Vec<String>) -> Result<String, &'static str> {
 }
 
 fn execute_lpush(command_array: Vec<String>) -> Result<String, &'static str> {
-    let in_memory_db_clone = Arc::clone(&DB);
-    let mut db: std::sync::MutexGuard<'_, db::InMemoryDb> = in_memory_db_clone.lock().unwrap();
+    let in_memory_db = Arc::clone(&DB);
+    let mut db: std::sync::MutexGuard<'_, db::InMemoryDb> = in_memory_db.lock().unwrap();
     match db.get_mut(command_array[1].to_string()) {
         Some(record) => {
             let args = command_array[2..]
@@ -144,8 +144,8 @@ fn execute_lpush(command_array: Vec<String>) -> Result<String, &'static str> {
 }
 
 fn execute_rpush(command_array: Vec<String>) -> Result<String, &'static str> {
-    let in_memory_db_clone = Arc::clone(&DB);
-    let mut db: std::sync::MutexGuard<'_, db::InMemoryDb> = in_memory_db_clone.lock().unwrap();
+    let in_memory_db = Arc::clone(&DB);
+    let mut db: std::sync::MutexGuard<'_, db::InMemoryDb> = in_memory_db.lock().unwrap();
     match db.get_mut(command_array[1].to_string()) {
         Some(record) => {
             record.val = format!("{},{}", record.val, command_array[2..].join(","));
@@ -162,8 +162,8 @@ fn execute_rpush(command_array: Vec<String>) -> Result<String, &'static str> {
 }
 
 fn execute_get(command_array: Vec<String>) -> Result<String, &'static str> {
-    let in_memory_db_clone = Arc::clone(&DB);
-    let db: std::sync::MutexGuard<'_, db::InMemoryDb> = in_memory_db_clone.lock().unwrap();
+    let in_memory_db = Arc::clone(&DB);
+    let db: std::sync::MutexGuard<'_, db::InMemoryDb> = in_memory_db.lock().unwrap();
     match db.get(command_array[1].to_string()) {
         Some(v) if v.expire_at.map(|t| t <= Utc::now()).unwrap_or(false) => {
             Ok(resp::create_null_bulk_string())
@@ -178,8 +178,8 @@ fn execute_get(command_array: Vec<String>) -> Result<String, &'static str> {
 }
 
 fn execute_set(command_array: Vec<String>) -> Result<String, &'static str> {
-    let in_memory_db_clone = Arc::clone(&DB);
-    let mut db: std::sync::MutexGuard<'_, db::InMemoryDb> = in_memory_db_clone.lock().unwrap();
+    let in_memory_db = Arc::clone(&DB);
+    let mut db: std::sync::MutexGuard<'_, db::InMemoryDb> = in_memory_db.lock().unwrap();
     let mut value = db::Value { val: command_array[2].to_string(), expire_at: None};
     if let Some(index) = command_array.iter().position(|s| s == "PX") {
         let milliseconds: i64 =  command_array[index+1].parse().unwrap();
