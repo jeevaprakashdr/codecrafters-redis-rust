@@ -1,8 +1,8 @@
 use std::{fmt::Display, str::FromStr, sync::Arc};
 use chrono::Utc;
 
-use crate::redis::resp::{self, create_simple_integer};
-use crate::redis::db::{self, DB};
+use crate::redis::resp::{self, create_bulk_string, create_null_bulk_string, create_simple_integer};
+use crate::redis::db::{self, DB, Value};
 
 #[derive(Debug, PartialEq)]
 pub enum Command {
@@ -13,7 +13,8 @@ pub enum Command {
     Lpush,
     Rpush,
     Lrange,
-    LLen,
+    Llen,
+    Lpop,
 }
 
 impl Command {
@@ -27,11 +28,33 @@ impl Command {
             Ok(Command::Lpush) => execute_lpush(command_array),
             Ok(Command::Rpush) => execute_rpush(command_array),
             Ok(Command::Lrange) => execute_lrange(command_array),
-            Ok(Command::LLen) => execute_llen(command_array),
+            Ok(Command::Llen) => execute_llen(command_array),
+            Ok(Command::Lpop) => execute_lpop(command_array),
             _ => {
                 Err("Failed to process command")
             }
         }
+    }
+}
+
+fn execute_lpop(command_array: Vec<String>) -> Result<String, &'static str> {
+    let in_memory_db_clone = Arc::clone(&DB);
+    let mut db: std::sync::MutexGuard<'_, db::InMemoryDb> = in_memory_db_clone.lock().unwrap();
+
+    match db.get_mut(command_array[1].to_string()) {
+        Some(data) => {
+            if data.val.is_empty() {
+                Ok(create_null_bulk_string())
+            } else if let Some((first, rest)) = data.val.split_once(",") {
+                let popped = first.to_string();
+                data.val = rest.to_string();
+                Ok(create_bulk_string(popped.as_str()))
+            } else {
+                let popped = std::mem::take(&mut data.val);
+                Ok(create_bulk_string(popped.as_str()))
+            }
+        }
+        None => Ok(create_null_bulk_string())
     }
 }
 
@@ -40,9 +63,9 @@ fn execute_llen(command_array: Vec<String>) -> Result<String, &'static str> {
     let db: std::sync::MutexGuard<'_, db::InMemoryDb> = in_memory_db_clone.lock().unwrap();
 
     match db.get(command_array[1].to_string()) {
-        Some(value) => {
+        Some(data) => {
             Ok(create_simple_integer(
-                value
+                data
                         .val
                         .split(",")
                         .collect::<Vec<_>>()
@@ -178,7 +201,8 @@ impl FromStr for Command {
             "lpush" => Ok(Command::Lpush),
             "rpush" => Ok(Command::Rpush),
             "lrange" => Ok(Command::Lrange),
-            "llen" => Ok(Command::LLen),
+            "llen" => Ok(Command::Llen),
+            "lpop" => Ok(Command::Lpop),
             _ => Err(format!("unknown command: {}", s))
         }
     }
@@ -194,7 +218,8 @@ impl Display for Command {
             Command::Lpush => write!(f, "lpush"),
             Command::Rpush => write!(f, "rpush"),
             Command::Lrange => write!(f, "lrange"),
-            Command::LLen => write!(f, "llen"),
+            Command::Llen => write!(f, "llen"),
+            Command::Lpop => write!(f, "lpop"),
         }
     }
 }
