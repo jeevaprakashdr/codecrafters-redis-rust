@@ -1,7 +1,7 @@
 use std::{fmt::Display, str::FromStr, sync::Arc};
 use chrono::Utc;
 
-use crate::redis::resp;
+use crate::redis::resp::{self, create_simple_integer};
 use crate::redis::db::{self, DB};
 
 #[derive(Debug, PartialEq)]
@@ -13,6 +13,7 @@ pub enum Command {
     Lpush,
     Rpush,
     Lrange,
+    LLen,
 }
 
 impl Command {
@@ -26,10 +27,31 @@ impl Command {
             Ok(Command::Lpush) => execute_lpush(command_array),
             Ok(Command::Rpush) => execute_rpush(command_array),
             Ok(Command::Lrange) => execute_lrange(command_array),
+            Ok(Command::LLen) => execute_llen(command_array),
             _ => {
                 Err("Failed to process command")
             }
         }
+    }
+}
+
+fn execute_llen(command_array: Vec<String>) -> Result<String, &'static str> {
+    let in_memory_db_clone = Arc::clone(&DB);
+    let db: std::sync::MutexGuard<'_, db::InMemoryDb> = in_memory_db_clone.lock().unwrap();
+
+    match db.get(command_array[1].to_string()) {
+        Some(value) => {
+            Ok(create_simple_integer(
+                value
+                        .val
+                        .split(",")
+                        .collect::<Vec<_>>()
+                        .len()
+                        .try_into()
+                        .unwrap_or(0)
+            ))
+        }
+        None => Ok(create_simple_integer(0))
     }
 }
 
@@ -156,6 +178,7 @@ impl FromStr for Command {
             "lpush" => Ok(Command::Lpush),
             "rpush" => Ok(Command::Rpush),
             "lrange" => Ok(Command::Lrange),
+            "llen" => Ok(Command::LLen),
             _ => Err(format!("unknown command: {}", s))
         }
     }
@@ -171,6 +194,7 @@ impl Display for Command {
             Command::Lpush => write!(f, "lpush"),
             Command::Rpush => write!(f, "rpush"),
             Command::Lrange => write!(f, "lrange"),
+            Command::LLen => write!(f, "llen"),
         }
     }
 }
