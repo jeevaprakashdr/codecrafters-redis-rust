@@ -12,6 +12,7 @@ pub enum Command {
     Echo,
     Set,
     Get,
+    Lpush,
     Rpush,
     Lrange,
 }
@@ -24,6 +25,7 @@ impl Command {
             Ok(Command::Echo) => Ok(resp::create_bulk_string(command_array[1..].join(" ").as_str())),
             Ok(Command::Set) => execute_set(command_array),
             Ok(Command::Get) => execute_get(command_array),
+            Ok(Command::Lpush) => execute_lpush(command_array),
             Ok(Command::Rpush) => execute_rpush(command_array),
             Ok(Command::Lrange) => execute_lrange(command_array),
             _ => {
@@ -64,6 +66,37 @@ fn execute_lrange(command_array: Vec<String>) -> Result<String, &'static str> {
     else {
         return Ok(resp::create_empty_array())
     }    
+}
+
+fn execute_lpush(command_array: Vec<String>) -> Result<String, &'static str> {
+    let in_memory_db_clone = Arc::clone(&DB);
+    let mut db: std::sync::MutexGuard<'_, db::InMemoryDb> = in_memory_db_clone.lock().unwrap();
+    match db.get_mut(command_array[1].to_string()) {
+        Some(record) => {
+            let args = command_array[2..]
+            .iter()
+            .rev()
+            .map(String::as_str)
+            .collect::<Vec<_>>()
+            .join(",");
+
+            record.val = format!("{},{}", args, record.val);
+            Ok(resp::create_simple_integer(
+                i32::try_from(record.val.split(',').count())
+                    .unwrap_or(1)))
+        },
+        None => {
+            let val = command_array[2..]
+                .iter()
+                .rev()
+                .map(String::as_str)
+                .collect::<Vec<_>>()
+                .join(",");
+            let value = db::Value { val, expire_at: None};
+            db.insert(command_array[1].to_string(), value);
+            Ok(resp::create_simple_integer(i32::try_from(command_array[2..].iter().count()).unwrap_or(1)))
+        }
+    }
 }
 
 fn execute_rpush(command_array: Vec<String>) -> Result<String, &'static str> {
@@ -122,6 +155,7 @@ impl FromStr for Command {
             "echo" => Ok(Command::Echo),
             "set" => Ok(Command::Set),
             "get" => Ok(Command::Get),
+            "lpush" => Ok(Command::Lpush),
             "rpush" => Ok(Command::Rpush),
             "lrange" => Ok(Command::Lrange),
             _ => Err(format!("unknown command: {}", s))
@@ -136,6 +170,7 @@ impl Display for Command {
             Command::Echo => write!(f, "echo"),
             Command::Set => write!(f, "set"),
             Command::Get => write!(f, "get"),
+            Command::Lpush => write!(f, "lpush"),
             Command::Rpush => write!(f, "rpush"),
             Command::Lrange => write!(f, "lrange"),
         }
