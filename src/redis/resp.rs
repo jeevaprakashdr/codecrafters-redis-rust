@@ -69,7 +69,7 @@ pub fn parse(input:&str) -> Result<Vec<String>, &'static str> {
             }
             State::BulkString => {
                 match current {
-                    Some('a'..='z') | Some('A'..='Z') | Some('0'..='9') | Some('_') | Some('-') => {
+                    Some('a'..='z') | Some('A'..='Z') | Some('0'..='9') | Some('_') | Some('-') | Some('.') => {
                         token.push(current.unwrap());
                         State::BulkString
                     }

@@ -44,8 +44,8 @@ impl Command {
 fn execute_blpop(command_array: Vec<String>) -> Result<String, &'static str> { 
     let timeout = command_array
                 .get(2)
-                .map(|f |u64::from_str(f.as_str()).unwrap_or(0))
-                .unwrap_or(0);
+                .map(|f |f64::from_str(f.as_str()).unwrap_or(0.0))
+                .unwrap_or(0.0);
     
     let mut timeout_expired = false;
 
@@ -54,13 +54,13 @@ fn execute_blpop(command_array: Vec<String>) -> Result<String, &'static str> {
             return Ok(create_array(&[command_array[1].as_str(), popped.as_str()]))
         }
 
-        if timeout > 0 {
-            thread::sleep(Duration::from_secs(timeout));
-            timeout_expired = true;
-        }
-
         if timeout_expired {
             return Ok(create_null_array())
+        }
+
+        if timeout > 0.0 {
+            thread::sleep(Duration::from_secs_f64(timeout));
+            timeout_expired = true;
         }
     }    
 }
@@ -80,7 +80,6 @@ fn blpop(command_array: &Vec<String>) -> Option<String> {
                 Some(popped)
             } else {
                 let popped = std::mem::take(&mut data.val);
-                data.val = "".to_string();
                 Some(popped)
             } 
         }
@@ -127,23 +126,6 @@ fn pop(command_array: &Vec<String>, number_of_elements: i32) -> Result<String, &
                 data.val = "".to_string();
                 Ok(create_bulk_string(popped.as_str()))
             } 
-
-            // if current_val.is_empty() {
-            //     Ok(create_null_bulk_string())
-            // } else if number_of_elements > 0 
-            //         && number_of_elements < i32::try_from(current_val.split(",").collect::<Vec<_>>().len()).map(|op| op - 1).unwrap_or(0) {
-            //     let collection = current_val.split(",").collect::<Vec<_>>();
-            //     let popped = collection[0 as usize..number_of_elements as usize].to_vec();
-            //     data.val = collection[number_of_elements as usize..].join(",");
-            //     Ok(create_array(&popped))
-            // } else if number_of_elements == 0 && let Some((first, rest)) = current_val.split_once(",") {
-            //     let popped = first.to_string();
-            //     data.val = rest.to_string();
-            //     Ok(create_bulk_string(popped.as_str()))
-            // } else { // number of elements to remove is more than the actual elements in data.val 
-            //     let popped = std::mem::take(&mut data.val);
-            //     Ok(create_bulk_string(popped.as_str()))
-            // }
         }
         None => Ok(create_null_bulk_string())
     }
