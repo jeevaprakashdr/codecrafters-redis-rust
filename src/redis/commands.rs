@@ -1,7 +1,8 @@
+use core::num;
 use std::{fmt::Display, str::FromStr, sync::Arc};
 use chrono::Utc;
 
-use crate::redis::resp::{self, create_bulk_string, create_null_bulk_string, create_simple_integer};
+use crate::redis::resp::{self, create_array, create_bulk_string, create_null_bulk_string, create_simple_integer};
 use crate::redis::db::{self, DB, Value};
 
 #[derive(Debug, PartialEq)]
@@ -43,9 +44,24 @@ fn execute_lpop(command_array: Vec<String>) -> Result<String, &'static str> {
 
     match db.get_mut(command_array[1].to_string()) {
         Some(data) => {
-            if data.val.is_empty() {
+            // process optional arguments to remove elements from the list
+            let number_of_elements = command_array
+                .get(2)
+                .map(|f |i32::from_str(f.as_str()).unwrap_or(0))
+                .unwrap_or(0);
+
+            let current_val = std::mem::take(&mut data.val);
+            
+            if current_val.is_empty() {
                 Ok(create_null_bulk_string())
-            } else if let Some((first, rest)) = data.val.split_once(",") {
+            } else if number_of_elements > 0 
+                    && number_of_elements < i32::try_from(current_val.split(",").collect::<Vec<_>>().len()).map(|op| op - 1).unwrap_or(0) {
+                let collection = current_val.split(",").collect::<Vec<_>>();
+                let popped = collection[0 as usize..number_of_elements as usize].to_vec();
+                data.val = collection[number_of_elements as usize..].join(",");
+                Ok(create_array(&popped))
+            } 
+            else if number_of_elements == 0 && let Some((first, rest)) = current_val.split_once(",") {
                 let popped = first.to_string();
                 data.val = rest.to_string();
                 Ok(create_bulk_string(popped.as_str()))
