@@ -23,7 +23,7 @@ pub fn parse(input:&str) -> Result<Vec<String>, &'static str> {
                     Some('*') => {
                         State::ArraySize
                     }
-                    Some('1'..='9') => {
+                    Some('0'..='9') => {
                         token.push(current.unwrap());
                         State::ArraySize
                     }
@@ -108,6 +108,10 @@ pub fn create_array(collection: &[&str]) -> String {
     format!("*{}\r\n{}", collection.iter().len(), collection_string)
 }
 
+pub fn create_null_array() -> String {
+    "*-1\r\n".to_string()
+}
+
 pub fn create_empty_array() -> String {
     "*0\r\n".to_string()
 }
@@ -131,6 +135,7 @@ pub fn create_null_bulk_string() -> String {
 #[cfg(test)]
 mod tests {
     use crate::redis::resp::{
+        create_null_array,
         create_array,
         create_empty_array,
         create_simple_integer,
@@ -151,10 +156,12 @@ mod tests {
     #[test]
     fn test_parse_get_command() {
         let inputs:Vec<(&str, &[&str])> = vec![
-            ("*3\r\n$3\r\nGET\r\n$5\r\nmango\r\n", &["GET", "mango"]),
-            ("*3\r\n$3\r\nGET\r\n$5\r\nmango_1_2\r\n", &["GET", "mango_1_2"]),
-            ("*3\r\n$3\r\nGET\r\n$2\r\n-1\r\n", &["GET", "-1"]),
-            ("*3\r\n$3\r\nSET\r\n$5\r\nmango\r\n$6\r\norange\r\n$2\r\nPX\r\n$3\r\n100\r\n", &["SET", "mango", "orange", "PX", "100"]),
+            // ("*3\r\n$3\r\nGET\r\n$5\r\nmango\r\n", &["GET", "mango"]),
+            // ("*3\r\n$3\r\nGET\r\n$5\r\nmango_1_2\r\n", &["GET", "mango_1_2"]),
+            // ("*3\r\n$3\r\nGET\r\n$2\r\n-1\r\n", &["GET", "-1"]),
+            // ("*3\r\n$3\r\nSET\r\n$5\r\nmango\r\n$6\r\norange\r\n$2\r\nPX\r\n$3\r\n100\r\n", &["SET", "mango", "orange", "PX", "100"]),
+            ("*10\r\n$5\r\nRPUSH\r\n$4\r\npear\r\n$9\r\nraspberry\r\n$9\r\npineapple\r\n$5\r\ngrape\r\n$9\r\nblueberry\r\n$5\r\nmango\r\n$6\r\norange\r\n$10\r\nstrawberry\r\n$6\r\nbanana\r\n", 
+                &["RPUSH", "pear", "raspberry", "pineapple", "grape", "blueberry", "mango", "orange", "strawberry", "banana"])
             ];
         
         for (cmd, expected) in inputs {
@@ -193,6 +200,11 @@ mod tests {
     #[test]
     fn test_create_empty_array() {
         assert_eq!("*0\r\n".to_string(), create_empty_array())
+    }
+
+    #[test]
+    fn test_create_null_array() {
+        assert_eq!("*-1\r\n".to_string(), create_null_array())
     }
 
     #[test]

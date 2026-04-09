@@ -1,8 +1,10 @@
 use core::num;
+use std::thread;
+use std::time::Duration;
 use std::{fmt::Display, str::FromStr, sync::Arc};
 use chrono::Utc;
 
-use crate::redis::resp::{self, create_array, create_bulk_string, create_null_bulk_string, create_simple_integer};
+use crate::redis::resp::{self, create_array, create_bulk_string, create_empty_array, create_null_array, create_null_bulk_string, create_simple_integer};
 use crate::redis::db::{self, DB, Value};
 
 #[derive(Debug, PartialEq)]
@@ -16,11 +18,11 @@ pub enum Command {
     Lrange,
     Llen,
     Lpop,
+    Blpop,
 }
 
 impl Command {
-    pub fn execute(
-        command_array: Vec<String>) -> Result<String, &'static str> {
+    pub fn execute(command_array: Vec<String>) -> Result<String, &'static str> {
         match Command::from_str(command_array[0].as_str()) {
             Ok(Command::Ping) => Ok(resp::create_simple_string("PONG")),
             Ok(Command::Echo) => Ok(resp::create_bulk_string(command_array[1..].join(" ").as_str())),
@@ -31,6 +33,7 @@ impl Command {
             Ok(Command::Lrange) => execute_lrange(command_array),
             Ok(Command::Llen) => execute_llen(command_array),
             Ok(Command::Lpop) => execute_lpop(command_array),
+            Ok(Command::Blpop) => execute_blpop(command_array),
             _ => {
                 Err("Failed to process command")
             }
@@ -38,37 +41,109 @@ impl Command {
     }
 }
 
-fn execute_lpop(command_array: Vec<String>) -> Result<String, &'static str> {
+fn execute_blpop(command_array: Vec<String>) -> Result<String, &'static str> { 
+    let timeout = command_array
+                .get(2)
+                .map(|f |u64::from_str(f.as_str()).unwrap_or(0))
+                .unwrap_or(0);
+    
+    let mut timeout_expired = false;
+
+    loop {
+        if let Some(popped) = blpop(&command_array) {
+            return Ok(create_array(&[command_array[1].as_str(), popped.as_str()]))
+        }
+
+        if timeout > 0 {
+            thread::sleep(Duration::from_secs(timeout));
+            timeout_expired = true;
+        }
+
+        if timeout_expired {
+            return Ok(create_null_array())
+        }
+    }    
+}
+
+fn blpop(command_array: &Vec<String>) -> Option<String> {
     let in_memory_db = Arc::clone(&DB);
     let mut db: std::sync::MutexGuard<'_, db::InMemoryDb> = in_memory_db.lock().unwrap();
-
     match db.get_mut(command_array[1].to_string()) {
         Some(data) => {
-            // process optional arguments to remove elements from the list
-            let number_of_elements = command_array
-                .get(2)
-                .map(|f |i32::from_str(f.as_str()).unwrap_or(0))
-                .unwrap_or(0);
+            if data.val.is_empty() {
+                return None
+            } 
+            
+            if let Some((first, rest)) = data.val.split_once(",") {
+                let popped = first.to_string();
+                data.val = rest.to_string();
+                Some(popped)
+            } else {
+                let popped = std::mem::take(&mut data.val);
+                data.val = "".to_string();
+                Some(popped)
+            } 
+        }
+        None => None
+    }
+}
+
+fn execute_lpop(command_array: Vec<String>) -> Result<String, &'static str> {
+    let number_of_elements = command_array
+        .get(2)
+        .map(|f |i32::from_str(f.as_str()).unwrap_or(0))
+        .unwrap_or(0);
+
+    pop(&command_array, number_of_elements)
+}
+
+fn pop(command_array: &Vec<String>, number_of_elements: i32) -> Result<String, &'static str> {
+    let in_memory_db = Arc::clone(&DB);
+    let mut db: std::sync::MutexGuard<'_, db::InMemoryDb> = in_memory_db.lock().unwrap();
+    match db.get_mut(command_array[1].to_string()) {
+        Some(data) => {
+            if data.val.is_empty() {
+                return Ok(create_null_bulk_string())
+            }
 
             let current_val = std::mem::take(&mut data.val);
-            
-            if current_val.is_empty() {
-                Ok(create_null_bulk_string())
-            } else if number_of_elements > 0 
-                    && number_of_elements < i32::try_from(current_val.split(",").collect::<Vec<_>>().len()).map(|op| op - 1).unwrap_or(0) {
+        
+            if number_of_elements > 0 {
                 let collection = current_val.split(",").collect::<Vec<_>>();
                 let popped = collection[0 as usize..number_of_elements as usize].to_vec();
                 data.val = collection[number_of_elements as usize..].join(",");
-                Ok(create_array(&popped))
-            } 
-            else if number_of_elements == 0 && let Some((first, rest)) = current_val.split_once(",") {
+                return Ok(create_array(&popped))
+            } else if number_of_elements > 0 && number_of_elements > i32::try_from(current_val.split(",").collect::<Vec<_>>().len()).unwrap_or(0) {
+                let popped = std::mem::take(&mut data.val);
+                return Ok(create_array(&popped.split(",").collect::<Vec<_>>()))
+            }
+
+            if let Some((first, rest)) = current_val.split_once(",") {
                 let popped = first.to_string();
                 data.val = rest.to_string();
                 Ok(create_bulk_string(popped.as_str()))
             } else {
                 let popped = std::mem::take(&mut data.val);
+                data.val = "".to_string();
                 Ok(create_bulk_string(popped.as_str()))
-            }
+            } 
+
+            // if current_val.is_empty() {
+            //     Ok(create_null_bulk_string())
+            // } else if number_of_elements > 0 
+            //         && number_of_elements < i32::try_from(current_val.split(",").collect::<Vec<_>>().len()).map(|op| op - 1).unwrap_or(0) {
+            //     let collection = current_val.split(",").collect::<Vec<_>>();
+            //     let popped = collection[0 as usize..number_of_elements as usize].to_vec();
+            //     data.val = collection[number_of_elements as usize..].join(",");
+            //     Ok(create_array(&popped))
+            // } else if number_of_elements == 0 && let Some((first, rest)) = current_val.split_once(",") {
+            //     let popped = first.to_string();
+            //     data.val = rest.to_string();
+            //     Ok(create_bulk_string(popped.as_str()))
+            // } else { // number of elements to remove is more than the actual elements in data.val 
+            //     let popped = std::mem::take(&mut data.val);
+            //     Ok(create_bulk_string(popped.as_str()))
+            // }
         }
         None => Ok(create_null_bulk_string())
     }
@@ -110,7 +185,7 @@ fn execute_lrange(command_array: Vec<String>) -> Result<String, &'static str> {
 
         // If the start index is greater than the stop index, an empty array is returned.
         // If the start index is greater than or equal to the list's length, an empty array is returned.
-        if start_index > stop_index 
+        if start_index > stop_index
             || start_index >= collection_len {
             return Ok(resp::create_empty_array())
         }
@@ -120,7 +195,8 @@ fn execute_lrange(command_array: Vec<String>) -> Result<String, &'static str> {
             stop_index = collection.len().try_into().unwrap_or(1) - 1; // could be confusing 
             return Ok(resp::create_array(&collection[start_index as usize ..=stop_index as usize]))
         }
-
+        println!("startIndex {}", start_index);
+        println!("stopIndex {}", stop_index);
         return Ok(resp::create_array(&collection[start_index as usize ..=stop_index as usize]))
     }
     else {
@@ -164,7 +240,12 @@ fn execute_rpush(command_array: Vec<String>) -> Result<String, &'static str> {
     let mut db: std::sync::MutexGuard<'_, db::InMemoryDb> = in_memory_db.lock().unwrap();
     match db.get_mut(command_array[1].to_string()) {
         Some(record) => {
-            record.val = format!("{},{}", record.val, command_array[2..].join(","));
+            if record.val.is_empty() {
+                record.val =  command_array[2..].join(",");
+            } else {
+                record.val = format!("{},{}", record.val, command_array[2..].join(","));
+            }
+            
             Ok(resp::create_simple_integer(
                 i32::try_from(record.val.split(',').count())
                     .unwrap_or(1)))
@@ -219,6 +300,7 @@ impl FromStr for Command {
             "lrange" => Ok(Command::Lrange),
             "llen" => Ok(Command::Llen),
             "lpop" => Ok(Command::Lpop),
+            "blpop" => Ok(Command::Blpop),
             _ => Err(format!("unknown command: {}", s))
         }
     }
@@ -236,6 +318,7 @@ impl Display for Command {
             Command::Lrange => write!(f, "lrange"),
             Command::Llen => write!(f, "llen"),
             Command::Lpop => write!(f, "lpop"),
+            Command::Blpop => write!(f, "blpop"),
         }
     }
 }
