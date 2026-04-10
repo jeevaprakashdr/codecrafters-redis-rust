@@ -1,6 +1,6 @@
 pub mod resp;
 pub mod db;
-pub mod commands;
+pub mod command;
 
 use std::collections::{self, HashMap};
 use std::fmt::Display;
@@ -12,7 +12,7 @@ use std::{
 use std::sync::{Arc, Mutex};
 use chrono::Utc;
 
-use crate::redis::commands::Command;
+use crate::redis::command::RedisCommand;
 
 pub fn handle_connection(
     stream: Result<TcpStream, Error>) {
@@ -31,7 +31,7 @@ pub fn handle_connection(
 
                 let cmd = str::from_utf8(&buffer[..bytes_count]).unwrap();
                 if let Ok(parsed_command_array) = resp::parse(cmd) {
-                    match Command::execute(parsed_command_array) {
+                    match RedisCommand::execute(parsed_command_array) {
                         Ok(response) => {
                             stream.write(response.as_bytes()).unwrap();
                         },
