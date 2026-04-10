@@ -8,6 +8,7 @@ mod lrange_command;
 mod llen_command;
 mod lpop_command;
 mod blpop_command;
+mod type_command;
 
 use core::num;
 use std::thread;
@@ -31,6 +32,7 @@ pub enum RedisCommand {
     Llen,
     Lpop,
     Blpop,
+    Type,
 }
 
 impl FromStr for RedisCommand {
@@ -48,6 +50,7 @@ impl FromStr for RedisCommand {
             "llen" => Ok(RedisCommand::Llen),
             "lpop" => Ok(RedisCommand::Lpop),
             "blpop" => Ok(RedisCommand::Blpop),
+            "type" => Ok(RedisCommand::Type),
             _ => Err(format!("unknown command: {}", s))
         }
     }
@@ -66,6 +69,7 @@ impl Display for RedisCommand {
             RedisCommand::Llen => write!(f, "llen"),
             RedisCommand::Lpop => write!(f, "lpop"),
             RedisCommand::Blpop => write!(f, "blpop"),
+            RedisCommand::Type => write!(f, "type"),
         }
     }
 }
@@ -83,6 +87,7 @@ impl RedisCommand {
             Ok(RedisCommand::Llen) => Box::new(llen_command::LlenCommand{args: command_array}),
             Ok(RedisCommand::Lpop) => Box::new(lpop_command::LpopCommand{args: command_array}),
             Ok(RedisCommand::Blpop) => Box::new(blpop_command::BlPopCommand{args: command_array}),
+            Ok(RedisCommand::Type) => Box::new(type_command::TypeCommand{args: command_array}),
             Err(_) => Box::new(InvalidCommand{}),
         };
 
