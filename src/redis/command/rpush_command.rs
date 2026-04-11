@@ -32,7 +32,7 @@ fn execute_rpush(command_array: &Vec<String>) -> Result<String, &'static str> {
                     .unwrap_or(1)))
         },
         None => {
-            let value = db::Value { val: command_array[2..].join(","), expire_at: None};
+            let value = db::Value { val: command_array[2..].join(","), expire_at: None, data_type: None};
             db.insert(command_array[1].to_string(), value);
             Ok(resp::create_simple_integer(i32::try_from(command_array[2..].iter().count()).unwrap_or(1)))
         }

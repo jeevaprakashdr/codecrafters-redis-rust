@@ -4,7 +4,8 @@ use chrono::{DateTime, Utc};
 
 pub struct Value {
     pub val : String,
-    pub expire_at : Option<DateTime<Utc>>
+    pub expire_at : Option<DateTime<Utc>>,
+    pub data_type : Option<String>
 }
 
 pub struct InMemoryDb {

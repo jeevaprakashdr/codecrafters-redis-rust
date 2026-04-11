@@ -11,7 +11,10 @@ impl Command for TypeCommand {
        let in_memory_db = Arc::clone(&DB);
         let db: std::sync::MutexGuard<'_, db::InMemoryDb> = in_memory_db.lock().unwrap();
         match db.get(self.args[1].to_string()) {
-            Some(_) => Ok(create_simple_string("string")),
+            Some(data) => {
+                Ok(create_simple_string(
+                    data.data_type.as_deref().unwrap_or("none")))
+            },
             None => Ok(create_simple_string("none"))
         }
     }
