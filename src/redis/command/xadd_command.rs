@@ -17,15 +17,16 @@ impl Command for XaddCommand {
         
         let (stream_key, new_stream_entry_id, new_stream_entries) = parse(&self.args);
 
-        match update_stream_last_entry_id(new_stream_entry_id.to_string(), &mut db) {
-            Ok(()) => {}
+        let updated_stream_entry_id = match update_stream_last_entry_id(new_stream_entry_id.to_string(), &mut db) {
+            Ok(stream_entry_id) => stream_entry_id,
             Err(EntryIdValidation::Default) => {
                 return Err("-ERR The ID specified in XADD must be greater than 0-0\r\n");
             }
             Err(EntryIdValidation::EqualOrLess) => {
                 return Err("-ERR The ID specified in XADD is equal or smaller than the target stream top item\r\n");
             }
-        }
+            Err(_) => new_stream_entry_id.to_string()
+        };
 
         match db.get_mut(stream_key.to_string()) {
             Some(current) => {
@@ -34,7 +35,7 @@ impl Command for XaddCommand {
                     "{},{}",
                     copied.as_str(),
                     new_stream_entries[1..].iter().map(|f| f.to_string()).collect::<Vec<_>>().join(","));
-                Ok(create_bulk_string(new_stream_entry_id.as_str()))
+                Ok(create_bulk_string(updated_stream_entry_id.as_str()))
             },
             None => {
                 let value = Value {
@@ -42,9 +43,14 @@ impl Command for XaddCommand {
                     expire_at: None, 
                     data_type: Some("stream".to_string()),
                 };
+                
+                let stream_entry_id = StreamEntryId::from_str(&new_stream_entry_id)
+                    .map(|o| o.auto_generate_seqno().to_string())
+                    .unwrap_or(new_stream_entry_id);
+                
                 db.insert(stream_key, value);
-                db.insert("LSEID".to_string(), Value { val: new_stream_entry_id.to_string(), expire_at: None , data_type: None });
-                Ok(create_bulk_string(new_stream_entry_id.as_str()))
+                db.insert("LSEID".to_string(), Value { val: stream_entry_id.to_string(), expire_at: None , data_type: None });
+                Ok(create_bulk_string(stream_entry_id.as_str()))
             },
         }
     }
@@ -52,26 +58,38 @@ impl Command for XaddCommand {
 
 
 enum EntryIdValidation {
+    DoNotExist,
     Default,
     EqualOrLess,
 }
 
 fn update_stream_last_entry_id(new_stream_entry_id: String,  db: &mut db::InMemoryDb) 
-    -> Result<(), EntryIdValidation> {
-    if let Some(last_entry_id) = db.get_mut("LSEID".to_string()) {
-        if new_stream_entry_id == "0-0"  {
-            return Err(EntryIdValidation::Default);
-        }
+    -> Result<String, EntryIdValidation> {
+    match db.get_mut("LSEID".to_string()) {
+        Some(last_entry_id) => {
+            if new_stream_entry_id == "0-0"  {
+                return Err(EntryIdValidation::Default);
+            }
+            
+            let last_stream_entry_id = StreamEntryId::from_str(last_entry_id.val.as_str()).unwrap();
+            let mut new_stream_entry_id = StreamEntryId::from_str(&new_stream_entry_id).unwrap();
+            
+            if last_stream_entry_id.ms > 0 
+                && last_stream_entry_id.ms == new_stream_entry_id.ms
+                && new_stream_entry_id.seqno == 0 {
+                new_stream_entry_id = StreamEntryId { ms: new_stream_entry_id.ms, seqno: last_stream_entry_id.seqno + 1 }
+            }
 
-        if StreamEntryId::from_str(last_entry_id.val.as_str()).unwrap() 
-            >= StreamEntryId::from_str(new_stream_entry_id.as_str()).unwrap() {
-            return Err(EntryIdValidation::EqualOrLess);
+            if last_stream_entry_id >= new_stream_entry_id {
+                return Err(EntryIdValidation::EqualOrLess);
+            }
+            
+            last_entry_id.val = new_stream_entry_id.to_string();
+            
+            Ok(new_stream_entry_id.to_string())
         }
-        
-        last_entry_id.val = new_stream_entry_id.to_string();
+        _ => Err(EntryIdValidation::DoNotExist),
     }
-    
-    Ok(())
 }
 
 fn parse(args: &Vec<String>) -> (String, String, Vec<StreamEntry>) {

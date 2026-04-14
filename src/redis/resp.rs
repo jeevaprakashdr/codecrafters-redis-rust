@@ -69,7 +69,7 @@ pub fn parse(input:&str) -> Result<Vec<String>, &'static str> {
             }
             State::BulkString => {
                 match current {
-                    Some('a'..='z') | Some('A'..='Z') | Some('0'..='9') | Some('_') | Some('-') | Some('.') => {
+                    Some('a'..='z') | Some('A'..='Z') | Some('0'..='9') | Some('_') | Some('-') | Some('.') | Some('*') => {
                         token.push(current.unwrap());
                         State::BulkString
                     }
@@ -156,12 +156,14 @@ mod tests {
     #[test]
     fn test_parse_get_command() {
         let inputs:Vec<(&str, &[&str])> = vec![
-            // ("*3\r\n$3\r\nGET\r\n$5\r\nmango\r\n", &["GET", "mango"]),
-            // ("*3\r\n$3\r\nGET\r\n$5\r\nmango_1_2\r\n", &["GET", "mango_1_2"]),
-            // ("*3\r\n$3\r\nGET\r\n$2\r\n-1\r\n", &["GET", "-1"]),
-            // ("*3\r\n$3\r\nSET\r\n$5\r\nmango\r\n$6\r\norange\r\n$2\r\nPX\r\n$3\r\n100\r\n", &["SET", "mango", "orange", "PX", "100"]),
+            ("*3\r\n$3\r\nGET\r\n$5\r\nmango\r\n", &["GET", "mango"]),
+            ("*3\r\n$3\r\nGET\r\n$5\r\nmango_1_2\r\n", &["GET", "mango_1_2"]),
+            ("*3\r\n$3\r\nGET\r\n$2\r\n-1\r\n", &["GET", "-1"]),
+            ("*3\r\n$3\r\nSET\r\n$5\r\nmango\r\n$6\r\norange\r\n$2\r\nPX\r\n$3\r\n100\r\n", &["SET", "mango", "orange", "PX", "100"]),
             ("*10\r\n$5\r\nRPUSH\r\n$4\r\npear\r\n$9\r\nraspberry\r\n$9\r\npineapple\r\n$5\r\ngrape\r\n$9\r\nblueberry\r\n$5\r\nmango\r\n$6\r\norange\r\n$10\r\nstrawberry\r\n$6\r\nbanana\r\n", 
-                &["RPUSH", "pear", "raspberry", "pineapple", "grape", "blueberry", "mango", "orange", "strawberry", "banana"])
+                &["RPUSH", "pear", "raspberry", "pineapple", "grape", "blueberry", "mango", "orange", "strawberry", "banana"]),
+            ("*5\r\n$4\r\nXADD\r\n$9\r\nblueberry\r\n$3\r\n0-*\r\n$5\r\ngrape\r\n$5\r\napple\r\n",
+                &["XADD", "blueberry", "0-*", "grape", "apple"])
             ];
         
         for (cmd, expected) in inputs {

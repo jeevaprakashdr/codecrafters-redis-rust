@@ -17,6 +17,14 @@ pub struct StreamEntryId {
     pub ms : i32,
     pub seqno : i32,
 }
+impl StreamEntryId {
+    pub fn auto_generate_seqno(&self) -> Self {
+        Self {
+            ms: self.ms,
+            seqno: if self.ms == 0 { 1 } else { self.seqno },
+        }
+    }
+}
 
 impl PartialOrd for StreamEntryId {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
@@ -62,7 +70,7 @@ impl FromStr for StreamEntryId {
         }
 
         let ms = i32::from_str(entry_id[0]);
-        let seqno = i32::from_str(entry_id[1]);
+        let seqno = if entry_id[1] == "*" { Ok(0) } else { i32::from_str(entry_id[1]) }; 
         if ms.is_ok() && seqno.is_ok() {
             return Ok(StreamEntryId { ms: ms.unwrap(), seqno: seqno.unwrap() });
         }
@@ -83,7 +91,10 @@ mod tests{
             ("0-0",StreamEntryId {ms:0,seqno:0}),
             ("0-1",StreamEntryId {ms:0,seqno:1}),
             ("1-0",StreamEntryId {ms:1,seqno:0}),
-            ("1-1",StreamEntryId {ms:1,seqno:1})];
+            ("1-1",StreamEntryId {ms:1,seqno:1}),
+            ("0-*",StreamEntryId {ms:0,seqno:0}),
+            ("1-*",StreamEntryId {ms:1,seqno:0}),
+            ];
 
         for (ele, element_id) in input {
             let result = StreamEntryId::from_str(ele);
@@ -144,11 +155,27 @@ mod tests{
             ((0,1),(0,0), true),
             ];
 
-        for (((ms1, seqno1), (ms2, seqno2), expected)) in input {
+        for ((ms1, seqno1), (ms2, seqno2), expected)  in input {
             let one = StreamEntryId { ms: ms1, seqno: seqno1};
             let two = StreamEntryId { ms: ms2, seqno: seqno2};
             
             assert_eq!(expected, one > two);    
+        }
+    }
+
+    #[test]
+    pub fn test_stream_entry_id_auto_generate_seqno() {
+        let input = vec![
+            ((0,0), (0,1)),
+            ((1,0), (1,0))
+            ];
+
+        for ((ms, seqno), (expected_ms, expected_seqno)) in input {
+            let stream_entry_id = StreamEntryId { ms, seqno};
+
+            let actual = stream_entry_id.auto_generate_seqno();
+
+            assert_eq!(actual, StreamEntryId {ms: expected_ms, seqno:expected_seqno});    
         }
     }
 }
