@@ -2,6 +2,7 @@ use std::{collections::HashMap, sync::{Arc, LazyLock, Mutex}};
 
 use chrono::{DateTime, Utc};
 
+#[derive(Debug)]
 pub struct Value {
     pub val : String,
     pub expire_at : Option<DateTime<Utc>>,
@@ -29,6 +30,12 @@ impl InMemoryDb {
 
     pub fn insert(&mut self, key: String, val: Value) -> Option<Value> {
         self.data.insert(key, val)
+    }
+}
+
+impl Default for Value {
+    fn default() -> Self {
+        Self { val: String::new(), expire_at: None, data_type: None }
     }
 }
 

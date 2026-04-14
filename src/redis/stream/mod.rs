@@ -1,0 +1,154 @@
+use std::{fmt::Display, str::FromStr, string};
+
+#[derive(Debug, PartialEq)]
+pub struct StreamEntry {
+    pub key: String,
+    pub value: String
+}
+
+impl Display for StreamEntry {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}:{}", self.key, self.value)
+    }
+}
+
+#[derive(Debug, PartialEq)]
+pub struct StreamEntryId {
+    pub ms : i32,
+    pub seqno : i32,
+}
+
+impl PartialOrd for StreamEntryId {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        match self.ms.partial_cmp(&other.ms) {
+            Some(core::cmp::Ordering::Equal) => {}
+            ord => return ord,
+        }
+        self.seqno.partial_cmp(&other.seqno)
+    }
+
+    fn gt(&self, other: &Self) -> bool {
+        if self.ms != other.ms {
+            self.ms > other.ms
+        } else {
+            self.seqno > other.seqno
+        }
+        
+    }
+
+    fn lt(&self, other: &Self) -> bool {
+        if self.ms != other.ms  {
+            self.ms < other.ms
+        } else {
+            self.seqno < other.seqno
+        }
+    }
+}
+
+impl Display for StreamEntryId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}-{}", self.ms, self.seqno)
+    }
+}
+
+impl FromStr for StreamEntryId {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let entry_id = s.split("-").collect::<Vec<_>>();
+
+        if entry_id.len() != 2 {
+            return Err(format!("failed"));
+        }
+
+        let ms = i32::from_str(entry_id[0]);
+        let seqno = i32::from_str(entry_id[1]);
+        if ms.is_ok() && seqno.is_ok() {
+            return Ok(StreamEntryId { ms: ms.unwrap(), seqno: seqno.unwrap() });
+        }
+
+        Err(format!("failed"))
+    }
+}
+
+#[cfg(test)]
+mod tests{
+    use std::str::FromStr;
+
+    use crate::redis::stream::{StreamEntry, StreamEntryId};
+
+    #[test]
+    pub fn test_entry_id_create_from_string() {
+        let input = vec![
+            ("0-0",StreamEntryId {ms:0,seqno:0}),
+            ("0-1",StreamEntryId {ms:0,seqno:1}),
+            ("1-0",StreamEntryId {ms:1,seqno:0}),
+            ("1-1",StreamEntryId {ms:1,seqno:1})];
+
+        for (ele, element_id) in input {
+            let result = StreamEntryId::from_str(ele);
+    
+            assert!(result.is_ok());
+            assert_eq!(result.unwrap(), element_id);
+        }
+    }
+    
+    #[test]
+    pub fn test_failed_entry_id_creating_from_string() {
+        let input = vec!["", "00", "00-", "-00", "a-1", "1-a"];
+        for ele in input {
+            let result = StreamEntryId::from_str(ele);
+            
+            assert!(result.is_err())
+        }
+    }
+    
+    #[test]
+    pub fn test_entry_id_convert_to_string() {
+        let entra_id = StreamEntryId {
+            ms: 0,
+            seqno: 1
+        };
+
+        assert_eq!("0-1", entra_id.to_string())
+    } 
+    
+    #[test]
+    pub fn test_stream_convert_to_string() {
+        let stream = StreamEntry {
+            key: "key".to_string(),
+            value: "value".to_string(),
+        };
+
+        assert_eq!("key:value", stream.to_string())
+    }
+
+    #[test]
+    pub fn test_stream_entry_id_convert_to_string() {
+        let stream_entry_id = StreamEntryId {
+            ms: 0,
+            seqno: 1
+        };
+
+        assert_eq!("0-1", stream_entry_id.to_string());
+    }
+
+    #[test]
+    pub fn test_stream_entry_id_compare_two_stream_entry_id() {
+        let input = vec![
+            ((0,0),(1,0), false),
+            ((0,0),(0,1), false),
+            ((0,1),(0,1), false),
+            ((1,0),(1,0), false),
+            ((1,0),(0,0), true),
+            ((0,1),(0,0), true),
+            ];
+
+        for (((ms1, seqno1), (ms2, seqno2), expected)) in input {
+            let one = StreamEntryId { ms: ms1, seqno: seqno1};
+            let two = StreamEntryId { ms: ms2, seqno: seqno2};
+            
+            assert_eq!(expected, one > two);    
+        }
+    }
+}

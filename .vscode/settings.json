@@ -5,6 +5,9 @@
         "Lpop",
         "Lpush",
         "Lrange",
-        "rpush"
+        "lseid",
+        "rpush",
+        "seqno",
+        "XADD"
     ]
 }

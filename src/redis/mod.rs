@@ -2,6 +2,8 @@ pub mod resp;
 pub mod db;
 pub mod command;
 
+mod stream;
+
 use std::collections::{self, HashMap};
 use std::fmt::Display;
 use std::io::{Read, Write};
@@ -37,6 +39,7 @@ pub fn handle_connection(
                         },
                         Err(e) => {
                             println!("{}", e);
+                            stream.write(e.as_bytes()).unwrap();
                         },
                     }
                 }
