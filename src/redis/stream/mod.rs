@@ -8,27 +8,6 @@ pub struct Stream {
     pub entries : HashMap<String, String>
 }
 
-impl Stream {
-    pub fn new() -> Self {
-        Self { 
-            id: StreamEntryId::default(), 
-            entries: HashMap::new() 
-        }
-    }
-}
-
-#[derive(Debug, PartialEq, Clone,)]
-pub struct StreamEntry {
-    pub key: String,
-    pub value: String
-}
-
-impl Display for StreamEntry {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}:{}", self.key, self.value)
-    }
-}
-
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub struct StreamEntryId {
     pub ms : i64,
@@ -37,20 +16,6 @@ pub struct StreamEntryId {
 impl StreamEntryId {
     pub fn new(ms: i64, seqno: i64) -> Self {
         Self { ms, seqno }
-    }
-    
-    pub fn auto_generate_seqno(&self) -> Self {
-        Self {
-            ms: self.ms,
-            seqno: if self.ms == 0 { 1 } else { self.seqno },
-        }
-    }
-    
-    pub fn increment_seqno(&self) -> Self {
-        Self {
-            ms: self.ms,
-            seqno: self.seqno + 1,
-        }
     }
 }
 
@@ -124,7 +89,7 @@ mod tests{
 
     use chrono::Utc;
 
-    use crate::redis::stream::{StreamEntry, StreamEntryId};
+    use crate::redis::stream::StreamEntryId;
 
     #[test]
     pub fn test_entry_id_create_from_autogenerate_string() {
@@ -177,16 +142,6 @@ mod tests{
     } 
     
     #[test]
-    pub fn test_stream_convert_to_string() {
-        let stream = StreamEntry {
-            key: "key".to_string(),
-            value: "value".to_string(),
-        };
-
-        assert_eq!("key:value", stream.to_string())
-    }
-
-    #[test]
     pub fn test_stream_entry_id_convert_to_string() {
         let stream_entry_id = StreamEntryId {
             ms: 0,
@@ -212,22 +167,6 @@ mod tests{
             let two = StreamEntryId { ms: ms2, seqno: seqno2};
             
             assert_eq!(expected, one > two);    
-        }
-    }
-
-    #[test]
-    pub fn test_stream_entry_id_auto_generate_seqno() {
-        let input = vec![
-            ((0,0), (0,1)),
-            ((1,0), (1,0))
-            ];
-
-        for ((ms, seqno), (expected_ms, expected_seqno)) in input {
-            let stream_entry_id = StreamEntryId { ms, seqno};
-
-            let actual = stream_entry_id.auto_generate_seqno();
-
-            assert_eq!(actual, StreamEntryId {ms: expected_ms, seqno:expected_seqno});    
         }
     }
 }
