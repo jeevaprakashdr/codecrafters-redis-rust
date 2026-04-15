@@ -1,5 +1,7 @@
 use std::{fmt::Display, str::FromStr, string};
 
+use chrono::Utc;
+
 #[derive(Debug, PartialEq)]
 pub struct StreamEntry {
     pub key: String,
@@ -14,8 +16,8 @@ impl Display for StreamEntry {
 
 #[derive(Debug, PartialEq)]
 pub struct StreamEntryId {
-    pub ms : i32,
-    pub seqno : i32,
+    pub ms : i64,
+    pub seqno : i64,
 }
 impl StreamEntryId {
     pub fn auto_generate_seqno(&self) -> Self {
@@ -59,18 +61,28 @@ impl Display for StreamEntryId {
     }
 }
 
+impl Default for StreamEntryId {
+    fn default() -> Self {
+        let dt  = Utc::now();
+        Self { ms: dt.timestamp_millis(), seqno: Default::default() }
+    }
+}
+
 impl FromStr for StreamEntryId {
     type Err = String;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let entry_id = s.split("-").collect::<Vec<_>>();
+        if s == "*" {
+            return Ok(StreamEntryId::default())
+        }
 
+        let entry_id = s.split("-").collect::<Vec<_>>();
         if entry_id.len() != 2 {
             return Err(format!("failed"));
         }
 
-        let ms = i32::from_str(entry_id[0]);
-        let seqno = if entry_id[1] == "*" { Ok(0) } else { i32::from_str(entry_id[1]) }; 
+        let ms = i64::from_str(entry_id[0]);
+        let seqno = if entry_id[1] == "*" { Ok(0) } else { i64::from_str(entry_id[1]) }; 
         if ms.is_ok() && seqno.is_ok() {
             return Ok(StreamEntryId { ms: ms.unwrap(), seqno: seqno.unwrap() });
         }
@@ -83,7 +95,20 @@ impl FromStr for StreamEntryId {
 mod tests{
     use std::str::FromStr;
 
+    use chrono::Utc;
+
     use crate::redis::stream::{StreamEntry, StreamEntryId};
+
+    #[test]
+    pub fn test_entry_id_create_from_autogenerate_string() {
+        let stream_entry_id = StreamEntryId::from_str("*");
+
+        assert!(stream_entry_id.is_ok());
+        let entry_id = stream_entry_id.unwrap();
+        
+        assert!(entry_id.ms > 0);
+        assert!(entry_id.seqno == 0);
+    }
 
     #[test]
     pub fn test_entry_id_create_from_string() {

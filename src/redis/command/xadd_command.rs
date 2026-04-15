@@ -45,7 +45,7 @@ impl Command for XaddCommand {
                 };
                 
                 let stream_entry_id = StreamEntryId::from_str(&new_stream_entry_id)
-                    .map(|o| o.auto_generate_seqno().to_string())
+                    .map(|seid| seid.auto_generate_seqno().to_string())
                     .unwrap_or(new_stream_entry_id);
                 
                 db.insert(stream_key, value);
