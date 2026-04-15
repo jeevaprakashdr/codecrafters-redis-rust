@@ -2,11 +2,14 @@ use std::{collections::HashMap, sync::{Arc, LazyLock, Mutex}};
 
 use chrono::{DateTime, Utc};
 
+use crate::redis::stream::{Stream, StreamEntryId};
+
 #[derive(Debug)]
 pub struct Value {
     pub val : String,
     pub expire_at : Option<DateTime<Utc>>,
-    pub data_type : Option<String>
+    pub data_type : Option<String>,
+    pub stream : Option<Stream>,
 }
 
 pub struct InMemoryDb {
@@ -35,7 +38,7 @@ impl InMemoryDb {
 
 impl Default for Value {
     fn default() -> Self {
-        Self { val: String::new(), expire_at: None, data_type: None }
+        Self { val: String::new(), expire_at: None, data_type: None, stream: None }
     }
 }
 

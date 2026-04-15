@@ -4,7 +4,7 @@ use std::sync::Arc;
 use crate::redis::command::Command;
 use crate::redis::db::{self, DB, Value};
 use crate::redis::resp::create_bulk_string;
-use crate::redis::stream::{StreamEntry, StreamEntryId};
+use crate::redis::stream::{Stream, StreamEntry, StreamEntryId};
 
 pub struct XaddCommand {
     pub args: Vec<String>
@@ -42,6 +42,7 @@ impl Command for XaddCommand {
                     val: new_stream_entries.iter().map(|f| f.to_string()).collect::<Vec<_>>().join(","),
                     expire_at: None, 
                     data_type: Some("stream".to_string()),
+                    stream: None
                 };
                 
                 let stream_entry_id = StreamEntryId::from_str(&new_stream_entry_id)
@@ -49,7 +50,7 @@ impl Command for XaddCommand {
                     .unwrap_or(new_stream_entry_id);
                 
                 db.insert(stream_key, value);
-                db.insert("LSEID".to_string(), Value { val: stream_entry_id.to_string(), expire_at: None , data_type: None });
+                db.insert("LSEID".to_string(), Value { val: stream_entry_id.to_string(), expire_at: None , data_type: None, stream: None });
                 Ok(create_bulk_string(stream_entry_id.as_str()))
             },
         }

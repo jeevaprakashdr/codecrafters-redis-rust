@@ -1,8 +1,23 @@
-use std::{fmt::Display, str::FromStr, string};
+use std::{collections::HashMap, fmt::Display, str::FromStr, string};
 
 use chrono::Utc;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug)]
+pub struct Stream {
+    pub id : StreamEntryId,
+    pub entries : HashMap<String, String>
+}
+
+impl Stream {
+    pub fn new() -> Self {
+        Self { 
+            id: StreamEntryId::default(), 
+            entries: HashMap::new() 
+        }
+    }
+}
+
+#[derive(Debug, PartialEq, Clone,)]
 pub struct StreamEntry {
     pub key: String,
     pub value: String
@@ -14,7 +29,7 @@ impl Display for StreamEntry {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone, Copy)]
 pub struct StreamEntryId {
     pub ms : i64,
     pub seqno : i64,

@@ -5,6 +5,7 @@ use chrono::Utc;
 use crate::redis::resp;
 use crate::redis::db::{self, DB};
 use crate::redis::command::Command;
+use crate::redis::stream::Stream;
 
 pub struct SetCommand {
     pub args: Vec<String>
@@ -19,7 +20,7 @@ impl Command for SetCommand {
 fn execute_set(command_array: &Vec<String>) -> Result<String, &'static str> {
     let in_memory_db = Arc::clone(&DB);
     let mut db: std::sync::MutexGuard<'_, db::InMemoryDb> = in_memory_db.lock().unwrap();
-    let mut value = db::Value { val: command_array[2].to_string(), expire_at: None, data_type: Some("string".to_string())};
+    let mut value = db::Value { val: command_array[2].to_string(), expire_at: None, data_type: Some("string".to_string()), stream: None};
     if let Some(index) = command_array.iter().position(|s| s == "PX") {
         let milliseconds: i64 =  command_array[index+1].parse().unwrap();
         value.expire_at = Some(Utc::now() + chrono::Duration::milliseconds(milliseconds));

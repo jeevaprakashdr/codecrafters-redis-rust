@@ -12,8 +12,16 @@ impl Command for TypeCommand {
         let db: std::sync::MutexGuard<'_, db::InMemoryDb> = in_memory_db.lock().unwrap();
         match db.get(self.args[1].to_string()) {
             Some(data) => {
-                Ok(create_simple_string(
-                    data.data_type.as_deref().unwrap_or("none")))
+                if !data.val.is_empty() {
+                    return Ok(create_simple_string(
+                    data.data_type.as_deref().unwrap_or("none")))        
+                }
+                
+                if let Some(_) = data.stream {
+                    return Ok(create_simple_string("stream"))
+                }
+
+                Ok(create_simple_string("none"))
             },
             None => Ok(create_simple_string("none"))
         }

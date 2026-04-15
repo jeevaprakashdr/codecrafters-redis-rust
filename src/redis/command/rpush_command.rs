@@ -5,6 +5,7 @@ use chrono::Utc;
 use crate::redis::resp;
 use crate::redis::db::{self, DB};
 use crate::redis::command::Command;
+use crate::redis::stream::Stream;
 
 pub struct RpushCommand {
     pub args: Vec<String>
@@ -32,7 +33,7 @@ fn execute_rpush(command_array: &Vec<String>) -> Result<String, &'static str> {
                     .unwrap_or(1)))
         },
         None => {
-            let value = db::Value { val: command_array[2..].join(","), expire_at: None, data_type: None};
+            let value = db::Value { val: command_array[2..].join(","), expire_at: None, data_type: None, stream: None};
             db.insert(command_array[1].to_string(), value);
             Ok(resp::create_simple_integer(i32::try_from(command_array[2..].iter().count()).unwrap_or(1)))
         }
