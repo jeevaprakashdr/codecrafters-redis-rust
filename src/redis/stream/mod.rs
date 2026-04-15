@@ -2,7 +2,7 @@ use std::{collections::HashMap, fmt::Display, str::FromStr, string};
 
 use chrono::Utc;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Stream {
     pub id : StreamEntryId,
     pub entries : HashMap<String, String>
@@ -35,10 +35,21 @@ pub struct StreamEntryId {
     pub seqno : i64,
 }
 impl StreamEntryId {
+    pub fn new(ms: i64, seqno: i64) -> Self {
+        Self { ms, seqno }
+    }
+    
     pub fn auto_generate_seqno(&self) -> Self {
         Self {
             ms: self.ms,
             seqno: if self.ms == 0 { 1 } else { self.seqno },
+        }
+    }
+    
+    pub fn increment_seqno(&self) -> Self {
+        Self {
+            ms: self.ms,
+            seqno: self.seqno + 1,
         }
     }
 }
@@ -96,13 +107,14 @@ impl FromStr for StreamEntryId {
             return Err(format!("failed"));
         }
 
-        let ms = i64::from_str(entry_id[0]);
-        let seqno = if entry_id[1] == "*" { Ok(0) } else { i64::from_str(entry_id[1]) }; 
-        if ms.is_ok() && seqno.is_ok() {
-            return Ok(StreamEntryId { ms: ms.unwrap(), seqno: seqno.unwrap() });
-        }
-
-        Err(format!("failed"))
+        let ms = i64::from_str(entry_id[0]).unwrap_or(0);
+        return Ok(StreamEntryId { 
+            ms: ms, 
+            seqno: if ms == 0 && entry_id[1] == "*" 
+                { 1 } 
+                else 
+                { i64::from_str(entry_id[1]).unwrap_or(0) }
+        });
     }
 }
 

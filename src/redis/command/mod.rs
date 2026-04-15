@@ -10,7 +10,6 @@ mod lpop_command;
 mod blpop_command;
 mod type_command;
 mod xadd_command;
-mod xadd_command_new;
 
 use core::num;
 use std::thread;
@@ -93,8 +92,7 @@ impl RedisCommand {
             Ok(RedisCommand::Lpop) => Box::new(lpop_command::LpopCommand{args: command_array}),
             Ok(RedisCommand::Blpop) => Box::new(blpop_command::BlPopCommand{args: command_array}),
             Ok(RedisCommand::Type) => Box::new(type_command::TypeCommand{args: command_array}),
-            //Ok(RedisCommand::Xadd) => Box::new(xadd_command::XaddCommand{args: command_array}),
-            Ok(RedisCommand::Xadd) => Box::new(xadd_command_new::XaddCommandNew{args: command_array}),
+            Ok(RedisCommand::Xadd) => Box::new(xadd_command::XaddCommand{args: command_array}),
             Err(_) => Box::new(InvalidCommand{}),
         };
 
