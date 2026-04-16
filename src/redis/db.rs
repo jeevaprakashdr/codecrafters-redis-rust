@@ -9,6 +9,7 @@ pub struct Value {
     pub val : String,
     pub expire_at : Option<DateTime<Utc>>,
     pub data_type : Option<String>,
+    pub list : Option<Vec<String>>,
     pub stream : Option<Stream>,
 }
 
@@ -38,7 +39,7 @@ impl InMemoryDb {
 
 impl Default for Value {
     fn default() -> Self {
-        Self { val: String::new(), expire_at: None, data_type: None, stream: None }
+        Self { val: String::new(), expire_at: None, data_type: None, list:None, stream: None }
     }
 }
 

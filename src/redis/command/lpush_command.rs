@@ -17,33 +17,36 @@ impl Command for LpushCommand {
     }
 }
 
-fn execute_lpush(command_array: &Vec<String>) -> Result<String, &'static str> {
+fn execute_lpush(args: &Vec<String>) -> Result<String, &'static str> {
     let in_memory_db = Arc::clone(&DB);
     let mut db: std::sync::MutexGuard<'_, db::InMemoryDb> = in_memory_db.lock().unwrap();
-    match db.get_mut(command_array[1].to_string()) {
+    match db.get_mut(args[1].to_string()) {
         Some(record) => {
-            let args = command_array[2..]
-            .iter()
-            .rev()
-            .map(String::as_str)
-            .collect::<Vec<_>>()
-            .join(",");
-
-            record.val = format!("{},{}", args, record.val);
-            Ok(resp::create_simple_integer(
-                i32::try_from(record.val.split(',').count())
-                    .unwrap_or(1)))
+            let mut current= record.list.as_mut().map_or(Vec::new(), |v| v.to_vec());
+            let mut update = args[2..].iter().map(|f| f.to_string()).collect();
+            current.append(&mut update);
+            current.reverse();
+            let count = current.len();
+            
+            record.list = Some(current);
+            Ok(resp::create_simple_integer(count))
         },
         None => {
-            let val = command_array[2..]
+            let list_items: Vec<String> = args[2..]
                 .iter()
                 .rev()
-                .map(String::as_str)
-                .collect::<Vec<_>>()
-                .join(",");
-            let value = db::Value { val, expire_at: None, data_type: None, stream: None};
-            db.insert(command_array[1].to_string(), value);
-            Ok(resp::create_simple_integer(i32::try_from(command_array[2..].iter().count()).unwrap_or(1)))
+                .map(|f| f.to_string())
+                .collect();
+            let count = list_items.len();
+            let value = db::Value {
+                val: "".to_string(),
+                expire_at: None, 
+                data_type: None,
+                list: Some(list_items),
+                stream: None
+            };
+            db.insert(args[1].to_string(), value);
+            Ok(resp::create_simple_integer(count))
         }
     }
 }

@@ -57,7 +57,8 @@ impl Command for XaddCommand {
                 let val  = Value {
                     val: "".to_string(),
                     data_type: None,
-                    expire_at: None, 
+                    expire_at: None,
+                    list: None, 
                     stream: Some(Stream {
                         id: stream_entry_id,
                         entries,

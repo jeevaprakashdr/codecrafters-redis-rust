@@ -116,7 +116,7 @@ pub fn create_empty_array() -> String {
     "*0\r\n".to_string()
 }
 
-pub fn create_simple_integer(val: i32) -> String {
+pub fn create_simple_integer(val: usize) -> String {
     format!(":{}\r\n", val)
 }
 

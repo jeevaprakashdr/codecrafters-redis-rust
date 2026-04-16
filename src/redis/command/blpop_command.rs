@@ -35,23 +35,21 @@ fn execute_blpop(command_array: &Vec<String>) -> Result<String, &'static str> {
     }    
 }
 
-fn blpop(command_array: &Vec<String>) -> Option<String> {
+fn blpop(args: &Vec<String>) -> Option<String> {
     let in_memory_db = Arc::clone(&DB);
     let mut db: std::sync::MutexGuard<'_, db::InMemoryDb> = in_memory_db.lock().unwrap();
-    match db.get_mut(command_array[1].to_string()) {
+    match db.get_mut(args[1].to_string()) {
         Some(data) => {
-            if data.val.is_empty() {
-                return None
-            } 
-            
-            if let Some((first, rest)) = data.val.split_once(",") {
-                let popped = first.to_string();
-                data.val = rest.to_string();
-                Some(popped)
+            let current= data
+                .list
+                .as_mut()
+                .map_or(Vec::new(), |v| v.to_vec());
+            if let Some((first, rest)) = current.split_first() {
+                data.list = Some(rest.to_vec());
+                Some(first.to_string())
             } else {
-                let popped = std::mem::take(&mut data.val);
-                Some(popped)
-            } 
+                None
+            }
         }
         None => None
     }

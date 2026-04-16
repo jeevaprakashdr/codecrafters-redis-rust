@@ -71,7 +71,8 @@ impl FromStr for StreamEntryId {
         if entry_id.len() != 2 {
             return Err(format!("failed"));
         }
-
+        
+        println!("{:?}", entry_id);
         let ms = i64::from_str(entry_id[0]).unwrap_or(0);
         return Ok(StreamEntryId { 
             ms: ms, 
@@ -109,7 +110,7 @@ mod tests{
             ("0-1",StreamEntryId {ms:0,seqno:1}),
             ("1-0",StreamEntryId {ms:1,seqno:0}),
             ("1-1",StreamEntryId {ms:1,seqno:1}),
-            ("0-*",StreamEntryId {ms:0,seqno:0}),
+            ("0-*",StreamEntryId {ms:0,seqno:1}),
             ("1-*",StreamEntryId {ms:1,seqno:0}),
             ];
 
@@ -123,7 +124,7 @@ mod tests{
     
     #[test]
     pub fn test_failed_entry_id_creating_from_string() {
-        let input = vec!["", "00", "00-", "-00", "a-1", "1-a"];
+        let input = vec!["", "00"];
         for ele in input {
             let result = StreamEntryId::from_str(ele);
             

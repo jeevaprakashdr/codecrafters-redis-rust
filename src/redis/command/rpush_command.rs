@@ -17,25 +17,35 @@ impl Command for RpushCommand {
     }
 }
 
-fn execute_rpush(command_array: &Vec<String>) -> Result<String, &'static str> {
+fn execute_rpush(args: &Vec<String>) -> Result<String, &'static str> {
     let in_memory_db = Arc::clone(&DB);
     let mut db: std::sync::MutexGuard<'_, db::InMemoryDb> = in_memory_db.lock().unwrap();
-    match db.get_mut(command_array[1].to_string()) {
+    match db.get_mut(args[1].to_string()) {
         Some(record) => {
-            if record.val.is_empty() {
-                record.val =  command_array[2..].join(",");
-            } else {
-                record.val = format!("{},{}", record.val, command_array[2..].join(","));
-            }
+            let mut current= record.list.as_mut().map_or(Vec::new(), |v| v.to_vec());
+            let mut update = list_items(args);
+            current.append(&mut update);
+            let count = current.len();
             
-            Ok(resp::create_simple_integer(
-                i32::try_from(record.val.split(',').count())
-                    .unwrap_or(1)))
+            record.list = Some(current);
+            Ok(resp::create_simple_integer(count))
         },
         None => {
-            let value = db::Value { val: command_array[2..].join(","), expire_at: None, data_type: None, stream: None};
-            db.insert(command_array[1].to_string(), value);
-            Ok(resp::create_simple_integer(i32::try_from(command_array[2..].iter().count()).unwrap_or(1)))
+            let list_items = list_items(args);
+            let count = list_items.len();
+            let value = db::Value {
+                val: "".to_string(),
+                expire_at: None, 
+                data_type: None,
+                list: Some(list_items),
+                stream: None
+            };
+            db.insert(args[1].to_string(), value);
+            Ok(resp::create_simple_integer(count))
         }
     }
+}
+
+fn list_items(args: &Vec<String>) -> Vec<String> {
+    args[2..].iter().map(|f| f.to_string()).collect()
 }
