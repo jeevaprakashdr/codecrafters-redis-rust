@@ -37,11 +37,5 @@ impl InMemoryDb {
     }
 }
 
-impl Default for Value {
-    fn default() -> Self {
-        Self { val: String::new(), expire_at: None, data_type: None, list:None, stream: None }
-    }
-}
-
 pub static DB: LazyLock<Arc<Mutex<InMemoryDb>>> 
     = LazyLock::new(|| { Arc::new(Mutex::new(InMemoryDb::new()))});

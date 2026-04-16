@@ -2,7 +2,7 @@ use std::{fmt::format, io::Error, mem};
 
 enum State {
     ArraySize,
-    CRLF,
+    Crlf,
     BulkStringSize,
     BulkString,
 }
@@ -29,17 +29,17 @@ pub fn parse(input:&str) -> Result<Vec<String>, &'static str> {
                     }
                     Some('\r') => {
                         tokens.push(mem::replace(&mut token, String::new()));
-                        State::CRLF
+                        State::Crlf
                     }
                     _ => {
                         break
                     }
                 }
             }
-            State::CRLF => {
+            State::Crlf => {
                 match current {
                     Some('\n') => {
-                        State::CRLF
+                        State::Crlf
                     }
                     Some('$') => {
                         State::BulkStringSize
@@ -77,7 +77,7 @@ pub fn parse(input:&str) -> Result<Vec<String>, &'static str> {
                         State::BulkString
                     }
                     Some('\n') => {
-                        if token.len() > 0 {
+                        if !token.is_empty() {
                             bulk_strings.push(token.clone());
                             tokens.push(mem::replace(&mut token, String::new()));
                         }
@@ -95,7 +95,7 @@ pub fn parse(input:&str) -> Result<Vec<String>, &'static str> {
         }
     }
 
-    if token.len() > 0 {
+    if !token.is_empty(){
         tokens.push(token);
     }
     
@@ -129,7 +129,7 @@ pub fn create_bulk_string(val: &str) -> String {
 }
 
 pub fn create_null_bulk_string() -> String {
-    format!("$-1\r\n")
+    "$-1\r\n".to_string()
 }
 
 #[cfg(test)]

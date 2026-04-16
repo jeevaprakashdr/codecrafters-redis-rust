@@ -17,7 +17,7 @@ impl Command for SetCommand {
     }
 }
 
-fn execute_set(command_array: &Vec<String>) -> Result<String, &'static str> {
+fn execute_set(command_array: &[String]) -> Result<String, &'static str> {
     let in_memory_db = Arc::clone(&DB);
     let mut db: std::sync::MutexGuard<'_, db::InMemoryDb> = in_memory_db.lock().unwrap();
     let mut value = db::Value { val: command_array[2].to_string(), expire_at: None, data_type: Some("string".to_string()), list:None, stream: None};

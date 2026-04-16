@@ -75,7 +75,7 @@ impl FromStr for StreamEntryId {
         println!("{:?}", entry_id);
         let ms = i64::from_str(entry_id[0]).unwrap_or(0);
         return Ok(StreamEntryId { 
-            ms: ms, 
+            ms, 
             seqno: if ms == 0 && entry_id[1] == "*" 
                 { 1 } 
                 else 

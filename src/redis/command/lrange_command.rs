@@ -17,7 +17,7 @@ impl Command for LrangeCommand {
     }
 }
 
-fn execute_lrange(args: &Vec<String>) -> Result<String, &'static str> {
+fn execute_lrange(args: &[String]) -> Result<String, &'static str> {
     let in_memory_db = Arc::clone(&DB);
     let db: std::sync::MutexGuard<'_, db::InMemoryDb> = in_memory_db.lock().unwrap();
 
