@@ -10,7 +10,7 @@ pub struct Value {
     pub expire_at : Option<DateTime<Utc>>,
     pub data_type : Option<String>,
     pub list : Option<Vec<String>>,
-    pub stream : Option<Stream>,
+    pub stream : Vec<Stream>,
 }
 
 pub struct InMemoryDb {

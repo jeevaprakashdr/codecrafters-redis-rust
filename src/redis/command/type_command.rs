@@ -17,7 +17,7 @@ impl Command for TypeCommand {
                     data.data_type.as_deref().unwrap_or("none")))        
                 }
                 
-                if data.stream.is_some() {
+                if data.stream.len() > 0 {
                     return Ok(create_simple_string("stream"))
                 }
 

@@ -10,6 +10,7 @@ mod lpop_command;
 mod blpop_command;
 mod type_command;
 mod xadd_command;
+mod xrange;
 
 use core::num;
 use std::thread;
@@ -18,6 +19,7 @@ use std::{fmt::Display, str::FromStr, sync::Arc};
 use chrono::Utc;
 
 use crate::redis::command;
+use crate::redis::command::xrange::Xrange;
 use crate::redis::resp::{self, create_array, create_bulk_string, create_empty_array, create_null_array, create_null_bulk_string, create_simple_integer};
 use crate::redis::db::{self, DB, Value};
 
@@ -35,6 +37,7 @@ pub enum RedisCommand {
     Blpop,
     Type,
     Xadd,
+    Xrange,
 }
 
 impl FromStr for RedisCommand {
@@ -54,6 +57,7 @@ impl FromStr for RedisCommand {
             "blpop" => Ok(RedisCommand::Blpop),
             "type" => Ok(RedisCommand::Type),
             "xadd" => Ok(RedisCommand::Xadd),
+            "xrange" => Ok(RedisCommand::Xrange),
             _ => Err(format!("unknown command: {}", s))
         }
     }
@@ -74,6 +78,7 @@ impl Display for RedisCommand {
             RedisCommand::Blpop => write!(f, "blpop"),
             RedisCommand::Type => write!(f, "type"),
             RedisCommand::Xadd => write!(f, "xadd"),
+            RedisCommand::Xrange => write!(f, "xrange"),
         }
     }
 }
@@ -93,6 +98,7 @@ impl RedisCommand {
             Ok(RedisCommand::Blpop) => Box::new(blpop_command::BlPopCommand{args: command_array}),
             Ok(RedisCommand::Type) => Box::new(type_command::TypeCommand{args: command_array}),
             Ok(RedisCommand::Xadd) => Box::new(xadd_command::XaddCommand{args: command_array}),
+            Ok(RedisCommand::Xrange) => Box::new(Xrange{args: command_array}),
             Err(_) => Box::new(InvalidCommand{}),
         };
 

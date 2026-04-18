@@ -1,11 +1,11 @@
-use std::{collections::HashMap, fmt::Display, str::FromStr, string};
+use std::{collections::{HashMap, HashSet}, fmt::Display, str::FromStr, string};
 
 use chrono::Utc;
 
 #[derive(Debug, Clone)]
 pub struct Stream {
     pub id : StreamEntryId,
-    pub entries : HashMap<String, String>
+    pub entries : Vec<String>
 }
 
 #[derive(Debug, PartialEq, Clone, Copy)]

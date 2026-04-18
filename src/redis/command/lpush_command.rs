@@ -43,7 +43,7 @@ fn execute_lpush(args: &[String]) -> Result<String, &'static str> {
                 expire_at: None, 
                 data_type: None,
                 list: Some(list_items),
-                stream: None
+                stream: vec![]
             };
             db.insert(args[1].to_string(), value);
             Ok(resp::create_simple_integer(count))
