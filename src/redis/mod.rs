@@ -35,11 +35,11 @@ pub fn handle_connection(
                 if let Ok(parsed_command_array) = resp::parse(cmd) {
                     match RedisCommand::execute(parsed_command_array) {
                         Ok(response) => {
-                            stream.write(response.as_bytes()).unwrap();
+                            stream.write_all(response.as_bytes()).unwrap();
                         },
                         Err(e) => {
                             println!("{}", e);
-                            stream.write(e.as_bytes()).unwrap();
+                            stream.write_all(e.as_bytes()).unwrap();
                         },
                     }
                 }

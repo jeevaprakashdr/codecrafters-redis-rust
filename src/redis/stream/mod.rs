@@ -69,18 +69,18 @@ impl FromStr for StreamEntryId {
 
         let entry_id = s.split("-").collect::<Vec<_>>();
         if entry_id.len() != 2 {
-            return Err(format!("failed"));
+            return Err("failed".to_string());
         }
         
         println!("{:?}", entry_id);
         let ms = i64::from_str(entry_id[0]).unwrap_or(0);
-        return Ok(StreamEntryId { 
+        Ok(StreamEntryId { 
             ms, 
             seqno: if ms == 0 && entry_id[1] == "*" 
                 { 1 } 
                 else 
                 { i64::from_str(entry_id[1]).unwrap_or(0) }
-        });
+        })
     }
 }
 

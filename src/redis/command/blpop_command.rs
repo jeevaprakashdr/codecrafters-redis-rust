@@ -20,7 +20,7 @@ fn execute_blpop(args: &[String]) -> Result<String, &'static str> {
     let mut timeout_expired = false;
 
     loop {
-        if let Some(popped) = blpop(&args) {
+        if let Some(popped) = blpop(args) {
             return Ok(create_array(&[args[1].as_str(), popped.as_str()]))
         }
 

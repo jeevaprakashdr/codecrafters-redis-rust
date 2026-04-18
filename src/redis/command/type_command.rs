@@ -17,7 +17,7 @@ impl Command for TypeCommand {
                     data.data_type.as_deref().unwrap_or("none")))        
                 }
                 
-                if let Some(_) = data.stream {
+                if data.stream.is_some() {
                     return Ok(create_simple_string("stream"))
                 }
 

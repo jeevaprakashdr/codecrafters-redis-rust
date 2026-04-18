@@ -28,7 +28,7 @@ pub fn parse(input:&str) -> Result<Vec<String>, &'static str> {
                         State::ArraySize
                     }
                     Some('\r') => {
-                        tokens.push(mem::replace(&mut token, String::new()));
+                        tokens.push(mem::take(&mut token));
                         State::Crlf
                     }
                     _ => {
@@ -59,7 +59,7 @@ pub fn parse(input:&str) -> Result<Vec<String>, &'static str> {
                         State::BulkStringSize
                     }
                     Some('\n') => { 
-                        tokens.push(mem::replace(&mut token, String::new()));
+                        tokens.push(mem::take(&mut token));
                         State::BulkString
                     }
                     _ => {
@@ -79,7 +79,7 @@ pub fn parse(input:&str) -> Result<Vec<String>, &'static str> {
                     Some('\n') => {
                         if !token.is_empty() {
                             bulk_strings.push(token.clone());
-                            tokens.push(mem::replace(&mut token, String::new()));
+                            tokens.push(mem::take(&mut token));
                         }
                      
                         State::BulkString
