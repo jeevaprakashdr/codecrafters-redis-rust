@@ -1,6 +1,6 @@
 use std::{str::FromStr, sync::Arc};
 
-use crate::redis::{command::Command, db::{self, DB}, resp::create_empty_array, stream::{Stream, StreamEntryId}};
+use crate::redis::{command::Command, db::{self, DB}, resp::{create_array, create_empty_array}, stream::{Stream, StreamEntryId}};
 
 pub struct Xrange {
     pub args: Vec<String>
@@ -16,7 +16,15 @@ impl Command for Xrange {
         let end = StreamEntryId::from_str(self.args[3].as_str()).unwrap_or(default);
         match db.get_mut(self.args[1].to_string()) {
             Some(data) => {
-                Ok(create_empty_array())
+                let out = data.stream
+                    .iter()
+                    .filter(|s| s.id >= start && s.id <= end)
+                    .map(|x| x.to_string())
+                    .collect::<Vec<_>>();
+                
+                let out_refs: Vec<&str> = out.iter().map(|s| s.as_str()).collect();
+                println!("{:?}", out_refs);
+                Ok(create_array(&out_refs))
             },
             None => Ok(create_empty_array())
         }
