@@ -43,6 +43,8 @@ impl Command for XaddCommand {
                     .map(|s| s.clone())
                     .collect::<Vec<String>>();
 
+                let mut en = HashMap::new();
+                en.insert(stream_entry_id.to_string(), stream_content.to_owned());
                 data.stream.push(Stream {
                     id: stream_entry_id,
                     entries: stream_content,
@@ -58,6 +60,8 @@ impl Command for XaddCommand {
 
                 let key = self.args[1].to_string();
                 let stream_entry_id = StreamEntryId::from_str(self.args[2].as_str()).unwrap();
+                let mut en = HashMap::new();
+                en.insert(stream_entry_id.to_string(), stream_content.to_owned());
                 let val  = Value {
                     val: "".to_string(),
                     data_type: None,

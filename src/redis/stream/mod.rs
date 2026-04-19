@@ -5,7 +5,7 @@ use chrono::Utc;
 #[derive(Debug, Clone)]
 pub struct Stream {
     pub id : StreamEntryId,
-    pub entries : Vec<String>
+    pub entries : Vec<String>,
 }
 
 impl Display for Stream {
@@ -14,7 +14,7 @@ impl Display for Stream {
     }
 }
 
-#[derive(Debug, PartialEq, Clone, Copy)]
+#[derive(Debug, PartialEq, Clone, Copy, Hash, Eq)]
 pub struct StreamEntryId {
     pub ms : i64,
     pub seqno : i64,
