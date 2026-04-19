@@ -8,12 +8,6 @@ pub struct Stream {
     pub entries : Vec<String>,
 }
 
-impl Display for Stream {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{},{:?}", self.id, self.entries)
-    }
-}
-
 #[derive(Debug, PartialEq, Clone, Copy, Hash, Eq)]
 pub struct StreamEntryId {
     pub ms : i64,

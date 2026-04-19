@@ -1,6 +1,6 @@
 use std::{str::FromStr, sync::Arc};
 
-use crate::redis::{command::Command, db::{self, DB}, resp::{create_array, create_bulk_string, create_empty_array, create_simple_string}, stream::{Stream, StreamEntryId}};
+use crate::redis::{command::Command, db::{self, DB}, resp::{create_array, create_bulk_string, create_empty_array}, stream::{Stream, StreamEntryId}};
 
 pub struct Xrange {
     pub args: Vec<String>
@@ -16,26 +16,23 @@ impl Command for Xrange {
         let end = StreamEntryId::from_str(self.args[3].as_str()).unwrap_or(default);
         match db.get_mut(self.args[1].to_string()) {
             Some(data) => {
-                let out: Vec<&Stream> = data.stream
+                let filtered: Vec<&Stream> = data.stream
                     .iter()
                     .filter(|s| s.id >= start && s.id <= end)
                     .collect::<Vec<_>>();
 
-                let mut actualout = Vec::<Vec<String>>::new();
-                for ele in out {
-                    let mut v = Vec::<String>::new();
-                    v.push(create_bulk_string (ele.id.to_string().as_str()));
-                    v.push(create_array(&ele.entries.iter().map(|f| f.as_str()).collect::<Vec<_>>()));
-                    actualout.push(v);
-                }
+                let out : Vec<String> = filtered
+                    .iter()
+                    .map(|f| {
+                        let mut v = Vec::<String>::new();
+                        v.push(create_bulk_string (f.id.to_string().as_str()));
+                        v.push(create_array(&f.entries.iter().map(|x| x.as_str()).collect::<Vec<_>>()));
+                        v
+                    })
+                    .map(|f|  format!("*{}\r\n{}", f.len(), f.join("")))
+                    .collect();
                 
-                
-                let k: Vec<String> = actualout.iter().map(|f| {
-                    f.join("")
-                }).collect();
-                
-                //println!("{}", format!("*{}\r\n{:?}", k.len(), k.join("")));
-                Ok(format!("*{}\r\n{:?}", k.len(), k.join("")))
+                Ok(format!("*{}\r\n{}", out.len(), out.join("").to_string()))
             },
             None => Ok(create_empty_array())
         }
