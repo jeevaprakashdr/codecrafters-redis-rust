@@ -9,6 +9,7 @@
         "rpush",
         "seqno",
         "XADD",
-        "XRANGE"
+        "XRANGE",
+        "Xread"
     ]
 }
