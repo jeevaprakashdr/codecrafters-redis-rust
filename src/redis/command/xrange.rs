@@ -26,15 +26,14 @@ impl Command for Xrange {
                 let out : Vec<String> = filtered
                     .iter()
                     .map(|stream| {
-                        let mut streams = Vec::<String>::new();
-                        streams.push(create_bulk_string (stream.id.to_string().as_str()));
-                        streams.push(create_array(&stream.entries.iter().map(|val| val.as_str()).collect::<Vec<_>>()));
-                        streams
+                        let bs = create_bulk_string (stream.id.to_string().as_str());
+                        let arr = create_array(&stream.entries.iter().map(|val| val.as_str()).collect::<Vec<_>>());
+                        vec![bs, arr]
                     })
                     .map(|streams|  format!("*{}\r\n{}", streams.len(), streams.join("")))
                     .collect();
                 
-                Ok(format!("*{}\r\n{}", out.len(), out.join("").to_string()))
+                Ok(format!("*{}\r\n{}", out.len(), out.join("")))
             },
             None => Ok(create_empty_array())
         }

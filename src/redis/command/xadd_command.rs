@@ -33,14 +33,14 @@ impl Command for XaddCommand {
                     return Err("-ERR The ID specified in XADD must be greater than 0-0\r\n");
                 }
                 
-                if data.stream.iter().any(|s| stream_entry_id == s.id || stream_entry_id < s.id) {
+                if data.stream.iter().any(|s| stream_entry_id <= s.id) {
                     return Err("-ERR The ID specified in XADD is equal or smaller than the target stream top item\r\n");
                 }
                 
                 let stream_content = self.args
                     .iter()
                     .skip(3)
-                    .map(|s| s.clone())
+                    .cloned()
                     .collect::<Vec<String>>();
 
                 let mut en = HashMap::new();
@@ -55,7 +55,7 @@ impl Command for XaddCommand {
                 let stream_content = self.args
                     .iter()
                     .skip(3)
-                    .map(|s| s.clone())
+                    .cloned()
                     .collect::<Vec<String>>();
 
                 let key = self.args[1].to_string();

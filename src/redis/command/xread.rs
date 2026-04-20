@@ -28,11 +28,11 @@ impl Command for Xread {
             .iter()
             .enumerate()
             .map(|(index, key)|fetch_data(&mut db, start_entry_ids[index], key))
-            .map(|stream_data| format!("*{}\r\n{}", stream_data.len(), stream_data.join("").to_string()))
+            .map(|stream_data| format!("*{}\r\n{}", stream_data.len(), stream_data.join("")))
             .collect();
 
-        if out.len() > 0 {
-            Ok(format!("*{}\r\n{}", out.len(), out.join("").to_string()))
+        if !out.is_empty() {
+            Ok(format!("*{}\r\n{}", out.len(), out.join("")))
         } else {
             Ok(create_empty_array())
         }
@@ -51,17 +51,16 @@ fn fetch_data(db: &mut std::sync::MutexGuard<'_, db::InMemoryDb>, start: StreamE
             let stream_data : Vec<String> = filtered
                 .iter()
                 .map(|stream| {
-                    let mut streams = Vec::<String>::new();
-                    streams.push(create_bulk_string (stream.id.to_string().as_str()));
-                    streams.push(create_array(&stream.entries.iter().map(|val| val.as_str()).collect::<Vec<_>>()));
-                    streams
+                    let bs = create_bulk_string (stream.id.to_string().as_str());
+                    let arr = create_array(&stream.entries.iter().map(|val| val.as_str()).collect::<Vec<_>>());
+                    vec![bs, arr]
                 })
                 .map(|streams|  format!("*{}\r\n{}", streams.len(), streams.join("")))
                 .collect();                    
             
             let mut data = Vec::new();
             data.push(create_bulk_string(stream_key.as_str()));
-            data.push(format!("*{}\r\n{}", stream_data.len(), stream_data.join("").to_string()));
+            data.push(format!("*{}\r\n{}", stream_data.len(), stream_data.join("")));
             data
         },
         None => { vec![] },
