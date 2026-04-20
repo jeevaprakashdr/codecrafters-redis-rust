@@ -73,6 +73,7 @@ fn fetch_data(db: &mut std::sync::MutexGuard<'_, db::InMemoryDb>, start: StreamE
                 .filter(|stream| stream.id > start)
                 .collect::<Vec<_>>();
 
+            println!("filtered ************** {:?}", filtered);
             let stream_data : Vec<String> = filtered
                 .iter()
                 .map(|stream| {
