@@ -14,13 +14,20 @@ impl Command for Xread {
         let in_memory_db = Arc::clone(&DB);
         let mut db: std::sync::MutexGuard<'_, db::InMemoryDb> = in_memory_db.lock().unwrap();
 
+        // let blocking_request = self.args.iter().any(|arg| arg.to_uppercase() == "block".to_string());
+
         let default  = StreamEntryId { ms: 0, seqno: 0 };
-        let start = StreamEntryId::from_str(self.args[3].as_str()).unwrap_or(default);
         let stream_keys = self.args.iter().skip(2).filter(|f| !f.contains("-")).collect::<Vec<_>>();
+        let start_entry_ids = self.args
+            .iter()
+            .skip(2)
+            .filter(|f| f.contains("-")).map(|f| StreamEntryId::from_str(f.as_str()).unwrap_or(default))
+            .collect::<Vec<_>>();
 
         let out: Vec<String> = stream_keys
             .iter()
-            .map(|key|fetch_data(&mut db, start, key))
+            .enumerate()
+            .map(|(index, key)|fetch_data(&mut db, start_entry_ids[index], key))
             .map(|stream_data| format!("*{}\r\n{}", stream_data.len(), stream_data.join("").to_string()))
             .collect();
 
