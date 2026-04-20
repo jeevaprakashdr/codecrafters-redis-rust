@@ -53,6 +53,7 @@ impl Xread {
             .iter()
             .enumerate()
             .map(|(index, key)|fetch_data(&mut db, start_entry_ids[index], key))
+            .filter(|vec| !vec.is_empty())
             .map(|stream_data| format!("*{}\r\n{}", stream_data.len(), stream_data.join("")))
             .collect();
 
@@ -73,7 +74,10 @@ fn fetch_data(db: &mut std::sync::MutexGuard<'_, db::InMemoryDb>, start: StreamE
                 .filter(|stream| stream.id > start)
                 .collect::<Vec<_>>();
 
-            println!("filtered ************** {:?}", filtered);
+            if filtered.is_empty() {
+                return vec![];
+            }
+
             let stream_data : Vec<String> = filtered
                 .iter()
                 .map(|stream| {
@@ -83,11 +87,7 @@ fn fetch_data(db: &mut std::sync::MutexGuard<'_, db::InMemoryDb>, start: StreamE
                 })
                 .map(|streams|  format!("*{}\r\n{}", streams.len(), streams.join("")))
                 .collect();                    
-            
-            if stream_data.is_empty() {
-                return vec![];
-            }
-
+          
             let bs = create_bulk_string(stream_key.as_str());
             let stream_str = format!("*{}\r\n{}", stream_data.len(), stream_data.join(""));
             vec![bs, stream_str]            
