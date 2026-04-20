@@ -8,6 +8,7 @@
         "lseid",
         "rpush",
         "seqno",
-        "XADD"
+        "XADD",
+        "XRANGE"
     ]
 }

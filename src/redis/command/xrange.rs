@@ -14,22 +14,24 @@ impl Command for Xrange {
         let default  = StreamEntryId { ms: 0, seqno: 0 };
         let start = StreamEntryId::from_str(self.args[2].as_str()).unwrap_or(default);
         let end = StreamEntryId::from_str(self.args[3].as_str()).unwrap_or(default);
+        let filter_till_end_of_stream = self.args[3] == "+";
         match db.get_mut(self.args[1].to_string()) {
             Some(data) => {
                 let filtered: Vec<&Stream> = data.stream
                     .iter()
-                    .filter(|s| s.id >= start && s.id <= end)
+                    .filter(|stream| 
+                        stream.id >= start && (filter_till_end_of_stream || stream.id <= end))
                     .collect::<Vec<_>>();
 
                 let out : Vec<String> = filtered
                     .iter()
-                    .map(|f| {
-                        let mut v = Vec::<String>::new();
-                        v.push(create_bulk_string (f.id.to_string().as_str()));
-                        v.push(create_array(&f.entries.iter().map(|x| x.as_str()).collect::<Vec<_>>()));
-                        v
+                    .map(|stream| {
+                        let mut streams = Vec::<String>::new();
+                        streams.push(create_bulk_string (stream.id.to_string().as_str()));
+                        streams.push(create_array(&stream.entries.iter().map(|val| val.as_str()).collect::<Vec<_>>()));
+                        streams
                     })
-                    .map(|f|  format!("*{}\r\n{}", f.len(), f.join("")))
+                    .map(|streams|  format!("*{}\r\n{}", streams.len(), streams.join("")))
                     .collect();
                 
                 Ok(format!("*{}\r\n{}", out.len(), out.join("").to_string()))

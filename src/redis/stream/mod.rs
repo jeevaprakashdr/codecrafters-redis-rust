@@ -67,20 +67,23 @@ impl FromStr for StreamEntryId {
             return Ok(StreamEntryId::default())
         }
 
-        let entry_id = s.split("-").collect::<Vec<_>>();
-        if entry_id.len() != 2 {
-            return Err("failed".to_string());
+        if s.contains("-") {
+            let entry_id = s.split("-").collect::<Vec<_>>();
+            if entry_id.len() != 2 {
+                return Err("Invalid entry Id.".to_string());
+            }
+            
+            let ms = i64::from_str(entry_id[0]).unwrap_or(0);
+            return Ok(StreamEntryId { 
+                ms, 
+                seqno: if ms == 0 && entry_id[1] == "*" 
+                    { 1 } 
+                    else 
+                    { i64::from_str(entry_id[1]).unwrap_or(0) }
+            })
         }
         
-        println!("{:?}", entry_id);
-        let ms = i64::from_str(entry_id[0]).unwrap_or(0);
-        Ok(StreamEntryId { 
-            ms, 
-            seqno: if ms == 0 && entry_id[1] == "*" 
-                { 1 } 
-                else 
-                { i64::from_str(entry_id[1]).unwrap_or(0) }
-        })
+        Ok(StreamEntryId::new(i64::from_str(s).unwrap_or(0), 0))
     }
 }
 
@@ -106,12 +109,13 @@ mod tests{
     #[test]
     pub fn test_entry_id_create_from_string() {
         let input = vec![
-            ("0-0",StreamEntryId {ms:0,seqno:0}),
-            ("0-1",StreamEntryId {ms:0,seqno:1}),
-            ("1-0",StreamEntryId {ms:1,seqno:0}),
-            ("1-1",StreamEntryId {ms:1,seqno:1}),
-            ("0-*",StreamEntryId {ms:0,seqno:1}),
-            ("1-*",StreamEntryId {ms:1,seqno:0}),
+            ("0-0", StreamEntryId {ms:0,seqno:0}),
+            ("0-1", StreamEntryId {ms:0,seqno:1}),
+            ("1-0", StreamEntryId {ms:1,seqno:0}),
+            ("1-1", StreamEntryId {ms:1,seqno:1}),
+            ("0-*", StreamEntryId {ms:0,seqno:1}),
+            ("1-*", StreamEntryId {ms:1,seqno:0}),
+            ("1",   StreamEntryId {ms:1,seqno:0}),
             ];
 
         for (ele, element_id) in input {
@@ -119,16 +123,6 @@ mod tests{
     
             assert!(result.is_ok());
             assert_eq!(result.unwrap(), element_id);
-        }
-    }
-    
-    #[test]
-    pub fn test_failed_entry_id_creating_from_string() {
-        let input = vec!["", "00"];
-        for ele in input {
-            let result = StreamEntryId::from_str(ele);
-            
-            assert!(result.is_err())
         }
     }
     

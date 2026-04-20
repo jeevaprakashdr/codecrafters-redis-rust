@@ -69,7 +69,7 @@ pub fn parse(input:&str) -> Result<Vec<String>, &'static str> {
             }
             State::BulkString => {
                 match current {
-                    Some('a'..='z') | Some('A'..='Z') | Some('0'..='9') | Some('_') | Some('-') | Some('.') | Some('*') => {
+                    Some('a'..='z') | Some('A'..='Z') | Some('0'..='9') | Some('_') | Some('-') | Some('.') | Some('*') | Some('+') => {
                         token.push(current.unwrap());
                         State::BulkString
                     }
@@ -163,7 +163,9 @@ mod tests {
             ("*10\r\n$5\r\nRPUSH\r\n$4\r\npear\r\n$9\r\nraspberry\r\n$9\r\npineapple\r\n$5\r\ngrape\r\n$9\r\nblueberry\r\n$5\r\nmango\r\n$6\r\norange\r\n$10\r\nstrawberry\r\n$6\r\nbanana\r\n", 
                 &["RPUSH", "pear", "raspberry", "pineapple", "grape", "blueberry", "mango", "orange", "strawberry", "banana"]),
             ("*5\r\n$4\r\nXADD\r\n$9\r\nblueberry\r\n$3\r\n0-*\r\n$5\r\ngrape\r\n$5\r\napple\r\n",
-                &["XADD", "blueberry", "0-*", "grape", "apple"])
+                &["XADD", "blueberry", "0-*", "grape", "apple"]),
+            ("*4\r\n$6\r\nXRANGE\r\n$5\r\napple\r\n$3\r\n0-2\r\n$1\r\n+\r\n", 
+                &["XRANGE", "apple", "0-2", "+"]),
             ];
         
         for (cmd, expected) in inputs {
