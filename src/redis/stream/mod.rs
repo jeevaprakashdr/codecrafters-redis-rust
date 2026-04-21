@@ -8,7 +8,7 @@ pub struct Stream {
     pub entries : Vec<String>,
 }
 
-#[derive(Debug, PartialEq, Clone, Copy, Hash, Eq)]
+#[derive(Debug, PartialEq, Clone, Copy, Hash, Eq, Ord)]
 pub struct StreamEntryId {
     pub ms : i64,
     pub seqno : i64,

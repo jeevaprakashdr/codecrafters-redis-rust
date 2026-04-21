@@ -17,23 +17,50 @@ impl Command for Xread {
         let (args_skip_index, timeout) = 
             if blocking_request { (4, u64::from_str(self.args[2].as_str()).unwrap_or(0)) } else { (2, 0) };
         
+        println!("self.args.last() {:?}", self.args.last());
         let mut timeout_expired = false;
-        loop {
-            if let Ok(data) = self.execute(args_skip_index) {
-                return Ok(data)
-            }
-            
-            if timeout_expired {
-                println!("expired");
-                return Ok(create_null_array())
-            }
+        
+        if self.args.last() == Some(&"$".to_string()) {
+            println!("latest find");
+            let mut previous = String::new();
+            loop {
+                if let Ok(data) = self.execute(args_skip_index) {
+                    if previous.is_empty() {
+                        previous = data;
+                    } else if !previous.is_empty() && previous != data {
+                        return Ok(data);
+                    }
+                }
 
-            if timeout > 0 {
-                println!("blocked");
-                thread::sleep(time::Duration::from_secs(1));
-                timeout_expired = true
-            }
-        }    
+                if timeout_expired {
+                    println!("expired");
+                    return Ok(create_null_array())
+                }
+
+                if timeout > 0 {
+                    thread::sleep(time::Duration::from_millis(timeout));
+                    timeout_expired = true;
+                }
+            }    
+        } else {
+            println!("find");
+            loop {
+                if let Ok(data) = self.execute(args_skip_index) {
+                    return Ok(data)
+                }
+                
+                if timeout_expired {
+                    println!("expired");
+                    return Ok(create_null_array())
+                }
+    
+                if timeout > 0 {
+                    thread::sleep(time::Duration::from_millis(timeout));
+                    timeout_expired = true;
+                }
+            }    
+        }
+
     }
 }
 
@@ -49,11 +76,17 @@ impl Xread {
             .skip(args_skip_index)
             .filter(|f| f.contains("-")).map(|f| StreamEntryId::from_str(f.as_str()).unwrap_or(default))
             .collect::<Vec<_>>();
-        println!("stream_keys {:?} start_entry_ids {:?}", stream_keys, start_entry_ids);
+        
         let out: Vec<String> = stream_keys
             .iter()
             .enumerate()
-            .map(|(index, key)|fetch_data(&mut db, start_entry_ids[index], key))
+            .map(|(index, key)|{
+                if self.args.last() == Some(&"$".to_string()) {
+                    fetch_latest_data(&mut db, key)    
+                } else {
+                    fetch_data(&mut db, *start_entry_ids.get(index).unwrap_or(&default), key)
+                }
+            })
             .filter(|vec| !vec.is_empty())
             .map(|stream_data| format!("*{}\r\n{}", stream_data.len(), stream_data.join("")))
             .collect();
@@ -65,6 +98,31 @@ impl Xread {
     }
 }
 
+fn fetch_latest_data(db: &mut std::sync::MutexGuard<'_, db::InMemoryDb>, stream_key: &String) -> Vec<String> {
+    match db.get_mut(stream_key.to_string()) {
+        Some(data) => {
+            let data: Vec<String> = data.stream.last().map_or_else(|| vec![], |stream| {
+                let bs = create_bulk_string (stream.id.to_string().as_str());
+                let arr = create_array(&stream.entries.iter().map(|val| val.as_str()).collect::<Vec<_>>());
+                if arr.is_empty() { 
+                    vec![] 
+                } else { 
+                    vec![bs, arr]
+                }
+            });
+            
+            let stream_data: Vec<String> = vec![data]
+                .iter()
+                .map(|streams|  format!("*{}\r\n{}", streams.len(), streams.join("")))
+                .collect();
+
+            let bs = create_bulk_string(stream_key.as_str());
+            let stream_str = format!("*{}\r\n{}", stream_data.len(), stream_data.join(""));
+            vec![bs, stream_str]
+        }
+        None => vec![]
+    }
+}
 fn fetch_data(db: &mut std::sync::MutexGuard<'_, db::InMemoryDb>, start: StreamEntryId, stream_key: &String) -> Vec<String> {
     match db.get_mut(stream_key.to_string()) {
         Some(data) => {

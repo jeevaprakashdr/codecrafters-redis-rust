@@ -55,6 +55,9 @@ pub fn parse(input:&str) -> Result<Vec<String>, &'static str> {
                         token.push(current.unwrap());
                         State::BulkStringSize
                     }
+                    Some('$') => { 
+                        State::BulkStringSize
+                    }
                     Some('\r') => { 
                         State::BulkStringSize
                     }
@@ -69,7 +72,7 @@ pub fn parse(input:&str) -> Result<Vec<String>, &'static str> {
             }
             State::BulkString => {
                 match current {
-                    Some('a'..='z') | Some('A'..='Z') | Some('0'..='9') | Some('_') | Some('-') | Some('.') | Some('*') | Some('+') => {
+                    Some('a'..='z') | Some('A'..='Z') | Some('0'..='9') | Some('_') | Some('-') | Some('.') | Some('*') | Some('+') | Some('$') => {
                         token.push(current.unwrap());
                         State::BulkString
                     }
@@ -82,11 +85,11 @@ pub fn parse(input:&str) -> Result<Vec<String>, &'static str> {
                             tokens.push(mem::take(&mut token));
                         }
                      
-                        State::BulkString
-                    }
-                    Some('$') => {
                         State::BulkStringSize
                     }
+                    // Some('$') => {
+                    //     State::BulkStringSize
+                    // }
                     _ => {
                         break
                     }
