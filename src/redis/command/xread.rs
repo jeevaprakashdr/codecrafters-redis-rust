@@ -8,88 +8,91 @@ use crate::redis::db::{self, DB};
 use crate::redis::resp::{create_array, create_bulk_string, create_empty_array, create_null_array};
 
 pub struct Xread {
-    pub args: Vec<String>
+    pub args: Vec<String>,
 }
 
 impl Command for Xread {
     fn execute (&self) -> Result<String, &'static str> {
-        let blocking_request = self.args.iter().any(|arg| arg.to_lowercase() == "block".to_string());
-        let (args_skip_index, timeout) = 
-            if blocking_request { (4, u64::from_str(self.args[2].as_str()).unwrap_or(0)) } else { (2, 0) };
-        
-        println!("self.args.last() {:?}", self.args.last());
+        let timeout =  self.get_timeout();
         let mut timeout_expired = false;
-        
-        if self.args.last() == Some(&"$".to_string()) {
-            println!("latest find");
-            let mut previous = String::new();
-            loop {
-                if let Ok(data) = self.execute(args_skip_index) {
-                    if previous.is_empty() {
-                        previous = data;
-                    } else if !previous.is_empty() && previous != data {
-                        return Ok(data);
-                    }
-                }
+        let mut previous = String::new();
 
-                if timeout_expired {
-                    println!("expired");
-                    return Ok(create_null_array())
+        loop {
+            if let Ok(data) = self.execute() {
+                if previous.is_empty() && self.on_block_get_latest_record(){
+                    previous = data;
+                } else if !previous.is_empty() && previous != data {
+                    return Ok(data);
+                } else if !self.on_block_get_latest_record() {
+                    return Ok(data);
                 }
+            }
+            
+            if timeout_expired {
+                return Ok(create_null_array())
+            }
 
-                if timeout > 0 {
-                    thread::sleep(time::Duration::from_millis(timeout));
-                    timeout_expired = true;
-                }
-            }    
-        } else {
-            println!("find");
-            loop {
-                if let Ok(data) = self.execute(args_skip_index) {
-                    return Ok(data)
-                }
-                
-                if timeout_expired {
-                    println!("expired");
-                    return Ok(create_null_array())
-                }
-    
-                if timeout > 0 {
-                    thread::sleep(time::Duration::from_millis(timeout));
-                    timeout_expired = true;
-                }
-            }    
-        }
-
+            if timeout > 0 {
+                thread::sleep(time::Duration::from_millis(timeout as u64));
+                timeout_expired = true;
+            }
+        }          
     }
+    
 }
 
 impl Xread {
-    fn execute(&self, args_skip_index: usize) -> Result<String, &'static str> {
-        let in_memory_db = Arc::clone(&DB);
-        let mut db: std::sync::MutexGuard<'_, db::InMemoryDb> = in_memory_db.lock().unwrap();
-        
-        let default  = StreamEntryId { ms: 0, seqno: 0 };
-        let stream_keys = self.args.iter().skip(args_skip_index).filter(|f| !f.contains("-")).collect::<Vec<_>>();
-        let start_entry_ids = self.args
+    fn has_blocking_request(&self) -> bool {
+        self.args.iter().any(|arg| arg.to_lowercase() == "block".to_string())
+    }
+    
+    fn get_timeout(&self) -> usize {
+        if self.has_blocking_request() { usize::from_str(self.args[2].as_str()).unwrap_or(0) } else {  0 }
+    }
+
+    fn on_block_get_latest_record(&self) -> bool {
+        self.args.last() == Some(&"$".to_string())
+    }
+
+    fn get_arg_stream_keys(&self) -> Vec<String> {
+        let start_index = if self.has_blocking_request() { 4 } else { 2 };
+        self.args
             .iter()
-            .skip(args_skip_index)
-            .filter(|f| f.contains("-")).map(|f| StreamEntryId::from_str(f.as_str()).unwrap_or(default))
-            .collect::<Vec<_>>();
+            .skip(start_index)
+            .filter(|arg| !arg.contains("-"))
+            .map(|arg| arg.to_string())
+            .collect::<Vec<_>>()
+    }
+
+    fn get_arg_stream_entry_ids(&self) -> Vec<StreamEntryId> {
+        let start_index = if self.has_blocking_request() { 4 } else { 2 };
+        self.args
+            .iter()
+            .skip(start_index)
+            .filter(|arg| arg.contains("-"))
+            .map(|arg| StreamEntryId::from_str(arg.as_str())
+                .unwrap_or(StreamEntryId { ms: 0, seqno: 0 }))
+            .collect::<Vec<_>>()
+    }
+
+    fn execute(&self) -> Result<String, &'static str> {
+        let stream_keys = self.get_arg_stream_keys();
+        let start_entry_ids = self.get_arg_stream_entry_ids();
         
         let out: Vec<String> = stream_keys
             .iter()
             .enumerate()
             .map(|(index, key)|{
                 if self.args.last() == Some(&"$".to_string()) {
-                    fetch_latest_data(&mut db, key)    
+                    fetch_latest_data(key)    
                 } else {
-                    fetch_data(&mut db, *start_entry_ids.get(index).unwrap_or(&default), key)
+                    fetch_data(*start_entry_ids.get(index).unwrap_or(&StreamEntryId { ms: 0, seqno: 0 }), key)
                 }
             })
             .filter(|vec| !vec.is_empty())
             .map(|stream_data| format!("*{}\r\n{}", stream_data.len(), stream_data.join("")))
             .collect();
+
         if !out.is_empty() {
             Ok(format!("*{}\r\n{}", out.len(), out.join("")))
         } else {
@@ -98,7 +101,10 @@ impl Xread {
     }
 }
 
-fn fetch_latest_data(db: &mut std::sync::MutexGuard<'_, db::InMemoryDb>, stream_key: &String) -> Vec<String> {
+fn fetch_latest_data(stream_key: &String) -> Vec<String> {
+    let in_memory_db = Arc::clone(&DB);
+    let mut db: std::sync::MutexGuard<'_, db::InMemoryDb> = in_memory_db.lock().unwrap();
+    
     match db.get_mut(stream_key.to_string()) {
         Some(data) => {
             let data: Vec<String> = data.stream.last().map_or_else(|| vec![], |stream| {
@@ -123,7 +129,11 @@ fn fetch_latest_data(db: &mut std::sync::MutexGuard<'_, db::InMemoryDb>, stream_
         None => vec![]
     }
 }
-fn fetch_data(db: &mut std::sync::MutexGuard<'_, db::InMemoryDb>, start: StreamEntryId, stream_key: &String) -> Vec<String> {
+
+fn fetch_data(start: StreamEntryId, stream_key: &String) -> Vec<String> {
+    let in_memory_db = Arc::clone(&DB);
+    let mut db: std::sync::MutexGuard<'_, db::InMemoryDb> = in_memory_db.lock().unwrap();
+
     match db.get_mut(stream_key.to_string()) {
         Some(data) => {
 
