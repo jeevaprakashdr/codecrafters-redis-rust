@@ -16,7 +16,7 @@ impl Command for Xread {
         let blocking_request = self.args.iter().any(|arg| arg.to_lowercase() == "block".to_string());
         let (args_skip_index, timeout) = 
             if blocking_request { (4, u64::from_str(self.args[2].as_str()).unwrap_or(0)) } else { (2, 0) };
-        println!("timeout {}", timeout);
+        
         let mut timeout_expired = false;
         loop {
             if let Ok(data) = self.execute(args_skip_index) {
@@ -49,7 +49,7 @@ impl Xread {
             .skip(args_skip_index)
             .filter(|f| f.contains("-")).map(|f| StreamEntryId::from_str(f.as_str()).unwrap_or(default))
             .collect::<Vec<_>>();
-        
+        println!("stream_keys {:?} start_entry_ids {:?}", stream_keys, start_entry_ids);
         let out: Vec<String> = stream_keys
             .iter()
             .enumerate()
