@@ -41,6 +41,109 @@ impl Command for Xread {
 }
 
 impl Xread {
+    fn execute(&self) -> Result<String, &'static str> {
+        let stream_keys = self.get_arg_stream_keys();
+        let start_entry_ids = self.get_arg_stream_entry_ids();
+
+        let out: Vec<String> = stream_keys
+            .iter()
+            .enumerate()
+            .map(|(index, key)| {
+                if self.args.last() == Some(&"$".to_string()) {
+                    self.fetch_latest_data(key)
+                } else {
+                    self.fetch_data(
+                        *start_entry_ids
+                            .get(index)
+                            .unwrap_or(&StreamEntryId { ms: 0, seqno: 0 }),
+                        key,
+                    )
+                }
+            })
+            .filter(|vec| !vec.is_empty())
+            .map(|stream_data| self.create_resp_array(&stream_data))
+            .collect();
+            
+
+        if !out.is_empty() {
+            Ok(self.create_resp_array(&out))
+        } else {
+            Err("No data found")
+        }
+    }
+
+    fn fetch_latest_data(&self, stream_key: &String) -> Vec<String> {
+        let in_memory_db = Arc::clone(&DB);
+        let mut db: std::sync::MutexGuard<'_, db::InMemoryDb> = in_memory_db.lock().unwrap();
+
+        match db.get_mut(stream_key.to_string()) {
+            Some(data) => {
+                if data.stream.is_empty() {
+                    return vec![];
+                }
+
+                data.stream
+                    .last()
+                    .map(|stream| self.create_resp_stream_entry_array(stream))
+                    .map(|streams| self.create_resp_array(&streams))
+                    .map(|f| vec![f])
+                    .map(|f| self.create_stream_resp_array(stream_key, &f))
+                    .unwrap_or_else(|| vec![])
+            }
+            None => vec![],
+        }
+    }
+
+    fn fetch_data(&self, start: StreamEntryId, stream_key: &String) -> Vec<String> {
+        let in_memory_db = Arc::clone(&DB);
+        let mut db: std::sync::MutexGuard<'_, db::InMemoryDb> = in_memory_db.lock().unwrap();
+
+        match db.get_mut(stream_key.to_string()) {
+            Some(data) => data
+                .stream
+                .iter()
+                .filter(|stream| stream.id > start)
+                .collect::<Vec<_>>()
+                .iter()
+                .map(|stream| self.create_resp_stream_entry_array(stream))
+                .map(|streams| self.create_resp_array(&streams))
+                .map(|f| vec![f])
+                .flat_map(|f| self.create_stream_resp_array(stream_key, &f))
+                .collect(),
+            None => {
+                vec![]
+            }
+        }
+    }
+
+    fn create_resp_stream_entry_array(&self, stream: &Stream) -> Vec<String> {
+        if stream.entries.is_empty() {
+            return vec![];
+        }
+
+        let bs: String = create_bulk_string(stream.id.to_string().as_str());
+        let arr = create_array(
+            &stream
+                .entries
+                .iter()
+                .map(|val| val.as_str())
+                .collect::<Vec<_>>(),
+        );
+
+        vec![bs, arr]
+    }
+
+    fn create_stream_resp_array(&self, stream_key: &str, stream_data: &[String]) -> Vec<String> {
+        vec![
+            create_bulk_string(stream_key),
+            format!("*{}\r\n{}", stream_data.len(), stream_data.join("")),
+        ]
+    }
+
+    fn create_resp_array(&self, data: &[String]) -> String {
+        format!("*{}\r\n{}", data.len(), data.join(""))
+    }
+
     fn has_blocking_request(&self) -> bool {
         self.args
             .iter()
@@ -80,106 +183,4 @@ impl Xread {
             })
             .collect::<Vec<_>>()
     }
-
-    fn execute(&self) -> Result<String, &'static str> {
-        let stream_keys = self.get_arg_stream_keys();
-        let start_entry_ids = self.get_arg_stream_entry_ids();
-
-        let out: Vec<String> = stream_keys
-            .iter()
-            .enumerate()
-            .map(|(index, key)| {
-                if self.args.last() == Some(&"$".to_string()) {
-                    self.fetch_latest_data(key)
-                } else {
-                    self.fetch_data(
-                        *start_entry_ids
-                            .get(index)
-                            .unwrap_or(&StreamEntryId { ms: 0, seqno: 0 }),
-                        key,
-                    )
-                }
-            })
-            .filter(|vec| !vec.is_empty())
-            .map(|stream_data| self.create_resp_array(&stream_data))
-            .collect();
-
-        if !out.is_empty() {
-            Ok(self.create_resp_array(&out))
-        } else {
-            Err("No data found")
-        }
-    }
-
-    fn fetch_latest_data(&self, stream_key: &String) -> Vec<String> {
-        let in_memory_db = Arc::clone(&DB);
-        let mut db: std::sync::MutexGuard<'_, db::InMemoryDb> = in_memory_db.lock().unwrap();
-
-        match db.get_mut(stream_key.to_string()) {
-            Some(data) => {
-                let stream_entry_data: Vec<String> = data
-                    .stream
-                    .last()
-                    .map_or_else(
-                        || vec![],
-                        |stream| self.create_resp_stream_entry_array(stream));
-                self.create_stream_resp_array(stream_key, &vec![self.create_resp_array(&stream_entry_data)])
-            }
-            None => vec![],
-        }
-    }
-
-    fn fetch_data(&self, start: StreamEntryId, stream_key: &String) -> Vec<String> {
-        let in_memory_db = Arc::clone(&DB);
-        let mut db: std::sync::MutexGuard<'_, db::InMemoryDb> = in_memory_db.lock().unwrap();
-
-        match db.get_mut(stream_key.to_string()) {
-            Some(data) => {
-                data
-                    .stream
-                    .iter()
-                    .filter(|stream| stream.id > start)
-                    .collect::<Vec<_>>()
-                    .iter()
-                    .map(|stream| self.create_resp_stream_entry_array(stream))
-                    .map(|streams| self.create_resp_array(&streams))
-                    .map(|f| vec![f])
-                    .flat_map(|f| self.create_stream_resp_array(stream_key, &f))
-                    .collect()
-            }
-            None => {
-                vec![]
-            }
-        }
-    }
-
-    fn create_resp_stream_entry_array(&self, stream: &Stream) -> Vec<String> {
-        let bs: String = create_bulk_string(stream.id.to_string().as_str());
-        let arr = create_array(
-            &stream
-                .entries
-                .iter()
-                .map(|val| val.as_str())
-                .collect::<Vec<_>>(),
-        );
-        if arr.is_empty() {
-            vec![]
-        } else {
-            vec![bs, arr]
-        }
-    }
-    
-    fn create_stream_resp_array(&self, stream_key: &str, stream_data: &[String]) -> Vec<String> {
-        vec![
-            create_bulk_string(stream_key), 
-            format!("*{}\r\n{}", stream_data.len(), stream_data.join(""))
-        ]
-    }
-
-    fn create_resp_array(&self, data: &[String]) -> String {
-        format!("*{}\r\n{}", data.len(), data.join(""))
-    }
 }
-
-
-
