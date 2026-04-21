@@ -87,9 +87,6 @@ pub fn parse(input:&str) -> Result<Vec<String>, &'static str> {
                      
                         State::BulkStringSize
                     }
-                    // Some('$') => {
-                    //     State::BulkStringSize
-                    // }
                     _ => {
                         break
                     }
