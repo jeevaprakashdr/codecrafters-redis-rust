@@ -101,11 +101,11 @@ impl Xread {
                 }
             })
             .filter(|vec| !vec.is_empty())
-            .map(|stream_data| format!("*{}\r\n{}", stream_data.len(), stream_data.join("")))
+            .map(|stream_data| self.create_resp_array(&stream_data))
             .collect();
 
         if !out.is_empty() {
-            Ok(format!("*{}\r\n{}", out.len(), out.join("")))
+            Ok(self.create_resp_array(&out))
         } else {
             Err("No data found")
         }
@@ -117,19 +117,13 @@ impl Xread {
 
         match db.get_mut(stream_key.to_string()) {
             Some(data) => {
-                let data: Vec<String> = data.stream.last().map_or_else(
-                    || vec![],
-                    |stream| create_resp_stream_entry_array(stream),
-                );
-
-                let stream_data: Vec<String> = vec![data]
-                    .iter()
-                    .map(|streams| format!("*{}\r\n{}", streams.len(), streams.join("")))
-                    .collect();
-
-                let bs = create_bulk_string(stream_key.as_str());
-                let stream_str = format!("*{}\r\n{}", stream_data.len(), stream_data.join(""));
-                vec![bs, stream_str]
+                let stream_entry_data: Vec<String> = data
+                    .stream
+                    .last()
+                    .map_or_else(
+                        || vec![],
+                        |stream| self.create_resp_stream_entry_array(stream));
+                self.create_stream_resp_array(stream_key, &vec![self.create_resp_array(&stream_entry_data)])
             }
             None => vec![],
         }
@@ -141,45 +135,51 @@ impl Xread {
 
         match db.get_mut(stream_key.to_string()) {
             Some(data) => {
-                let filtered: Vec<&Stream> = data
+                data
                     .stream
                     .iter()
                     .filter(|stream| stream.id > start)
-                    .collect::<Vec<_>>();
-
-                if filtered.is_empty() {
-                    return vec![];
-                }
-
-                let stream_data: Vec<String> = filtered
+                    .collect::<Vec<_>>()
                     .iter()
-                    .map(|stream| create_resp_stream_entry_array(stream))
-                    .map(|streams| format!("*{}\r\n{}", streams.len(), streams.join("")))
-                    .collect();
-
-                let bs = create_bulk_string(stream_key.as_str());
-                let stream_str = format!("*{}\r\n{}", stream_data.len(), stream_data.join(""));
-                vec![bs, stream_str]
+                    .map(|stream| self.create_resp_stream_entry_array(stream))
+                    .map(|streams| self.create_resp_array(&streams))
+                    .map(|f| vec![f])
+                    .flat_map(|f| self.create_stream_resp_array(stream_key, &f))
+                    .collect()
             }
             None => {
                 vec![]
             }
         }
     }
-}
 
-fn create_resp_stream_entry_array(stream: &Stream) -> Vec<String> {
-    let bs: String = create_bulk_string(stream.id.to_string().as_str());
-    let arr = create_array(
-        &stream
-            .entries
-            .iter()
-            .map(|val| val.as_str())
-            .collect::<Vec<_>>(),
-    );
-    if arr.is_empty() {
-        vec![]
-    } else {
-        vec![bs, arr]
+    fn create_resp_stream_entry_array(&self, stream: &Stream) -> Vec<String> {
+        let bs: String = create_bulk_string(stream.id.to_string().as_str());
+        let arr = create_array(
+            &stream
+                .entries
+                .iter()
+                .map(|val| val.as_str())
+                .collect::<Vec<_>>(),
+        );
+        if arr.is_empty() {
+            vec![]
+        } else {
+            vec![bs, arr]
+        }
+    }
+    
+    fn create_stream_resp_array(&self, stream_key: &str, stream_data: &[String]) -> Vec<String> {
+        vec![
+            create_bulk_string(stream_key), 
+            format!("*{}\r\n{}", stream_data.len(), stream_data.join(""))
+        ]
+    }
+
+    fn create_resp_array(&self, data: &[String]) -> String {
+        format!("*{}\r\n{}", data.len(), data.join(""))
     }
 }
+
+
+
