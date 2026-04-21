@@ -84,10 +84,10 @@ impl Xread {
 
                 data.stream
                     .last()
-                    .map(|stream| self.create_resp_stream_entry_array(stream))
+                    .map(|stream| self.create_stream_entry_array(stream))
                     .map(|streams| self.create_resp_array(&streams))
                     .map(|f| vec![f])
-                    .map(|f| self.create_stream_resp_array(stream_key, &f))
+                    .map(|f| self.create_resp_stream_array(stream_key, &f))
                     .unwrap_or_else(|| vec![])
             }
             None => vec![],
@@ -105,10 +105,10 @@ impl Xread {
                 .filter(|stream| stream.id > start)
                 .collect::<Vec<_>>()
                 .iter()
-                .map(|stream| self.create_resp_stream_entry_array(stream))
+                .map(|stream| self.create_stream_entry_array(stream))
                 .map(|streams| self.create_resp_array(&streams))
                 .map(|f| vec![f])
-                .flat_map(|f| self.create_stream_resp_array(stream_key, &f))
+                .flat_map(|f| self.create_resp_stream_array(stream_key, &f))
                 .collect(),
             None => {
                 vec![]
@@ -116,7 +116,7 @@ impl Xread {
         }
     }
 
-    fn create_resp_stream_entry_array(&self, stream: &Stream) -> Vec<String> {
+    fn create_stream_entry_array(&self, stream: &Stream) -> Vec<String> {
         if stream.entries.is_empty() {
             return vec![];
         }
@@ -133,7 +133,7 @@ impl Xread {
         vec![bs, arr]
     }
 
-    fn create_stream_resp_array(&self, stream_key: &str, stream_data: &[String]) -> Vec<String> {
+    fn create_resp_stream_array(&self, stream_key: &str, stream_data: &[String]) -> Vec<String> {
         vec![
             create_bulk_string(stream_key),
             format!("*{}\r\n{}", stream_data.len(), stream_data.join("")),
