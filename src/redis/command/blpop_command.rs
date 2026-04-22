@@ -40,9 +40,9 @@ fn blpop(args: &[String]) -> Option<String> {
     let mut db: std::sync::MutexGuard<'_, db::InMemoryDb> = in_memory_db.lock().unwrap();
     match db.get_mut(args[1].to_string()) {
         Some(data) => {
-            match data.list.to_vec().split_first() {
+            match data.list().to_vec().split_first() {
                 Some((first, rest)) => {
-                    data.list = rest.to_vec();
+                    data.set_list(rest);
                     Some(first.to_string())
                 }
                 None => None,

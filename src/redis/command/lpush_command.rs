@@ -22,14 +22,13 @@ fn execute_lpush(args: &[String]) -> Result<String, &'static str> {
     let mut db: std::sync::MutexGuard<'_, db::InMemoryDb> = in_memory_db.lock().unwrap();
     match db.get_mut(args[1].to_string()) {
         Some(record) => {
-            let mut current= record.list.to_vec();
+            let mut current= record.list().to_vec();
             let mut update = args[2..].iter().map(|f| f.to_string()).collect();
             current.append(&mut update);
             current.reverse();
-            let count = current.len();
             
-            record.list = current;
-            Ok(resp::create_simple_integer(count))
+            record.set_list(&current);
+            Ok(resp::create_simple_integer(current.len()))
         },
         None => {
             let list_items: Vec<String> = args[2..]
