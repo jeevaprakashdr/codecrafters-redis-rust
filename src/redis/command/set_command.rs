@@ -20,7 +20,7 @@ impl Command for SetCommand {
 fn execute_set(command_array: &[String]) -> Result<String, &'static str> {
     let in_memory_db = Arc::clone(&DB);
     let mut db: std::sync::MutexGuard<'_, db::InMemoryDb> = in_memory_db.lock().unwrap();
-    let mut value = db::Value { val: command_array[2].to_string(), expire_at: None, data_type: Some("string".to_string()), list:None, stream: vec![]};
+    let mut value = db::Value { val: command_array[2].to_string(), expire_at: None, list:None, stream: vec![]};
     if let Some(index) = command_array.iter().position(|s| s == "PX") {
         let milliseconds: i64 =  command_array[index+1].parse().unwrap();
         value.expire_at = Some(Utc::now() + chrono::Duration::milliseconds(milliseconds));

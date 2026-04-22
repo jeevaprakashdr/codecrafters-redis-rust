@@ -7,10 +7,9 @@ use crate::redis::stream::{Stream, StreamEntryId};
 #[derive(Debug)]
 pub struct Value {
     pub val : String,
-    pub expire_at : Option<DateTime<Utc>>,
-    pub data_type : Option<String>,
     pub list : Option<Vec<String>>,
     pub stream : Vec<Stream>,
+    pub expire_at : Option<DateTime<Utc>>,
 }
 
 pub struct InMemoryDb {

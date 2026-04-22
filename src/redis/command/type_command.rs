@@ -13,8 +13,7 @@ impl Command for TypeCommand {
         match db.get(self.args[1].to_string()) {
             Some(data) => {
                 if !data.val.is_empty() {
-                    return Ok(create_simple_string(
-                    data.data_type.as_deref().unwrap_or("none")))        
+                    return Ok(create_simple_string("string"))        
                 }
                 
                 if !data.stream.is_empty() {

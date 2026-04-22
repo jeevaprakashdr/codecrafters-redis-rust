@@ -64,7 +64,6 @@ impl Command for XaddCommand {
                 en.insert(stream_entry_id.to_string(), stream_content.to_owned());
                 let val  = Value {
                     val: "".to_string(),
-                    data_type: None,
                     expire_at: None,
                     list: None, 
                     stream: vec![Stream {

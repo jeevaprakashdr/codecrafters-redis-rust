@@ -41,7 +41,6 @@ fn execute_lpush(args: &[String]) -> Result<String, &'static str> {
             let value = db::Value {
                 val: "".to_string(),
                 expire_at: None, 
-                data_type: None,
                 list: Some(list_items),
                 stream: vec![]
             };
