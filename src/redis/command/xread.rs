@@ -136,7 +136,7 @@ impl Xread {
     fn create_resp_stream_array(&self, stream_key: &str, stream_data: &[String]) -> Vec<String> {
         vec![
             create_bulk_string(stream_key),
-            format!("*{}\r\n{}", stream_data.len(), stream_data.join("")),
+            create_resp_array(stream_data),
         ]
     }
 
