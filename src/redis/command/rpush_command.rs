@@ -22,12 +22,12 @@ fn execute_rpush(args: &[String]) -> Result<String, &'static str> {
     let mut db: std::sync::MutexGuard<'_, db::InMemoryDb> = in_memory_db.lock().unwrap();
     match db.get_mut(args[1].to_string()) {
         Some(record) => {
-            let mut current= record.list.as_mut().map_or(Vec::new(), |v| v.to_vec());
+            let mut current= record.list.to_vec();
             let mut update = list_items(args);
             current.append(&mut update);
             let count = current.len();
             
-            record.list = Some(current);
+            record.list = current;
             Ok(resp::create_simple_integer(count))
         },
         None => {
@@ -36,7 +36,7 @@ fn execute_rpush(args: &[String]) -> Result<String, &'static str> {
             let value = db::Value {
                 val: "".to_string(),
                 expire_at: None, 
-                list: Some(list_items),
+                list: list_items,
                 stream: vec![]
             };
             db.insert(args[1].to_string(), value);

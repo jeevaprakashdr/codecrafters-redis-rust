@@ -22,7 +22,7 @@ fn execute_lrange(args: &[String]) -> Result<String, &'static str> {
     let db: std::sync::MutexGuard<'_, db::InMemoryDb> = in_memory_db.lock().unwrap();
 
     if let Some(data) = db.get(args[1].to_string()) {
-        let collection = data.list.as_ref().map_or(Vec::new(), |v|v.to_vec());
+        let collection = data.list.to_vec();
         let len = collection.len() as isize;
 
          let start_index = isize::from_str(args[2].as_str())

@@ -65,7 +65,7 @@ impl Command for XaddCommand {
                 let val  = Value {
                     val: "".to_string(),
                     expire_at: None,
-                    list: None, 
+                    list: vec![], 
                     stream: vec![Stream {
                         id: stream_entry_id,
                         entries: stream_content,
@@ -76,7 +76,5 @@ impl Command for XaddCommand {
                 Ok(create_bulk_string(stream_entry_id.to_string().as_str()))
             },
         }
-        
-        
     }
 }

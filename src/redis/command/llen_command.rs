@@ -20,8 +20,7 @@ fn execute_llen(args: &[String]) -> Result<String, &'static str> {
 
     match db.get(args[1].to_string()) {
         Some(data) => {
-            let len = data.list.as_ref().map(|f| f.len()).unwrap_or(0);
-            Ok(create_simple_integer(len))
+            Ok(create_simple_integer(data.list.len()))
         }
         None => Ok(create_simple_integer(0))
     }

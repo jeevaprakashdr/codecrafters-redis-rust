@@ -24,12 +24,12 @@ fn execute_lpop(args: &[String]) -> Result<String, &'static str> {
                 return Ok(create_null_bulk_string())
             }
 
-            let current= data.list.as_mut().map_or(Vec::new(), |v| v.to_vec());
+            let current= data.list.to_vec();
             let number_of_elements = args.get(2)
                 .map(|f |usize::from_str(f.as_str()).unwrap_or(0))
                 .unwrap_or(1);
          
-            data.list = Some(current[number_of_elements..].to_vec());
+            data.list = current[number_of_elements..].to_vec();
             
             let popped = current[0..number_of_elements].to_vec();
             if popped.len() == 1 {
