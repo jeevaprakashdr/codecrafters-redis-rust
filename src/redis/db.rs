@@ -9,7 +9,7 @@ pub struct Value {
     str : String,
     list : Vec<String>,
     stream : Vec<Stream>,
-    pub expire_at : Option<DateTime<Utc>>,
+    expire_at : Option<DateTime<Utc>>,
 }
 
 impl Value {
@@ -41,14 +41,14 @@ impl Value {
     }
     
     pub fn stream(&self) -> &[Stream] { &self.stream }
-    pub fn set_stream(&mut self, stream: &[Stream]) { 
-        self.stream = stream.to_vec()
-    }
     pub fn push_stream(&mut self, stream: Stream) { 
         self.stream.push(stream)
     }
 
     pub fn expire_at(&self) -> Option<DateTime<Utc>> { self.expire_at }
+    pub fn set_expire_at(&mut self, expire_at : DateTime<Utc>) { 
+        self.expire_at = Some(expire_at)
+    }
 }
 
 pub struct InMemoryDb {

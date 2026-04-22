@@ -23,7 +23,7 @@ fn execute_set(command_array: &[String]) -> Result<String, &'static str> {
     let mut value = db::Value::with_str(command_array[2].to_string());
     if let Some(index) = command_array.iter().position(|s| s == "PX") {
         let milliseconds: i64 =  command_array[index+1].parse().unwrap();
-        value.expire_at = Some(Utc::now() + chrono::Duration::milliseconds(milliseconds));
+        value.set_expire_at(Utc::now() + chrono::Duration::milliseconds(milliseconds));
     }
     db.insert(command_array[1].to_string(), value);
     Ok(resp::create_simple_string("OK"))
