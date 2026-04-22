@@ -19,7 +19,7 @@ impl Command for XaddCommand {
                         StreamEntryId::default()
                     } else if self.args[2].contains("*") {
                         let new: StreamEntryId = StreamEntryId::from_str(self.args[2].as_str()).unwrap_or_default();
-                        data.stream
+                        data.stream()
                             .iter()
                             .find(|x| x.id >= new)
                             .map(|x| StreamEntryId::new(x.id.ms, x.id.seqno + 1))
@@ -33,7 +33,7 @@ impl Command for XaddCommand {
                     return Err("-ERR The ID specified in XADD must be greater than 0-0\r\n");
                 }
                 
-                if data.stream.iter().any(|s| stream_entry_id <= s.id) {
+                if data.stream().iter().any(|s| stream_entry_id <= s.id) {
                     return Err("-ERR The ID specified in XADD is equal or smaller than the target stream top item\r\n");
                 }
                 
@@ -45,7 +45,7 @@ impl Command for XaddCommand {
 
                 let mut en = HashMap::new();
                 en.insert(stream_entry_id.to_string(), stream_content.to_owned());
-                data.stream.push(Stream {
+                data.push_stream(Stream {
                     id: stream_entry_id,
                     entries: stream_content,
                 });                
@@ -68,7 +68,7 @@ impl Command for XaddCommand {
                     entries: stream_content,
                 }]);
                 db.insert(key, value);
-                
+
                 Ok(create_bulk_string(stream_entry_id.to_string().as_str()))
             },
         }

@@ -17,7 +17,7 @@ impl Command for Xrange {
         let filter_till_end_of_stream = self.args[3] == "+";
         match db.get_mut(self.args[1].to_string()) {
             Some(data) => {
-                let filtered: Vec<&Stream> = data.stream
+                let filtered: Vec<&Stream> = data.stream()
                     .iter()
                     .filter(|stream| 
                         stream.id >= start && (filter_till_end_of_stream || stream.id <= end))

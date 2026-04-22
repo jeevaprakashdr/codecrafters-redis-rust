@@ -16,7 +16,7 @@ impl Command for TypeCommand {
                     return Ok(create_simple_string("string"))        
                 }
                 
-                if !data.stream.is_empty() {
+                if !data.stream().is_empty() {
                     return Ok(create_simple_string("stream"))
                 }
 

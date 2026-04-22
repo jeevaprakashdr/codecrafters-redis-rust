@@ -79,11 +79,12 @@ impl Xread {
 
         match db.get_mut(stream_key.to_string()) {
             Some(data) => {
-                if data.stream.is_empty() {
+                if data.stream().is_empty() {
                     return vec![];
                 }
 
-                data.stream
+                data
+                    .stream()
                     .last()
                     .map(|stream| self.create_stream_entry_array(stream))
                     .map(|streams| create_resp_array(&streams.iter().map(|f|f.as_str()).collect::<Vec<_>>()))
@@ -101,7 +102,7 @@ impl Xread {
 
         match db.get_mut(stream_key.to_string()) {
             Some(data) => data
-                .stream
+                .stream()
                 .iter()
                 .filter(|stream| stream.id > start)
                 .collect::<Vec<_>>()

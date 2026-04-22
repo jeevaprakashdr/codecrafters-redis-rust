@@ -8,7 +8,7 @@ use crate::redis::stream::{Stream, StreamEntryId};
 pub struct Value {
     str : String,
     list : Vec<String>,
-    pub stream : Vec<Stream>,
+    stream : Vec<Stream>,
     pub expire_at : Option<DateTime<Utc>>,
 }
 
@@ -36,11 +36,18 @@ impl Value {
 
     pub fn str_val(&self) -> &str { &self.str }
     pub fn list(&self) -> &[String] { &self.list }
-    pub fn set_list(&mut self, value: &[String]) { 
-        self.list = value.to_vec()
+    pub fn set_list(&mut self, list: &[String]) { 
+        self.list = list.to_vec()
     }
     
     pub fn stream(&self) -> &[Stream] { &self.stream }
+    pub fn set_stream(&mut self, stream: &[Stream]) { 
+        self.stream = stream.to_vec()
+    }
+    pub fn push_stream(&mut self, stream: Stream) { 
+        self.stream.push(stream)
+    }
+
     pub fn expire_at(&self) -> Option<DateTime<Utc>> { self.expire_at }
 }
 
