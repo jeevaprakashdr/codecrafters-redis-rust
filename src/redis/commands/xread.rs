@@ -23,9 +23,8 @@ impl<'a> Command for Xread<'a> {
             if let Ok(data) = self.execute() {
                 if previous.is_empty() && self.block_until_latest_record() {
                     previous = data;
-                } else if !previous.is_empty() && previous != data {
-                    return Ok(data);
-                } else if !self.block_until_latest_record() {
+                } else if (!previous.is_empty() && previous != data) 
+                    || !self.block_until_latest_record(){
                     return Ok(data);
                 }
             }
