@@ -1,33 +1,37 @@
 use std::sync::Arc;
 
-use chrono::Utc;
+use chrono::{DateTime, Utc};
 
 use crate::redis::command::Command;
 use crate::redis::resp;
 use crate::redis::db::{self, DB};
 
-pub struct GetCommand {
-    pub args: Vec<String>
+pub struct GetCommand<'a> {
+    pub args: &'a [&'a str]
 }
 
-impl Command for GetCommand {
+impl<'a> Command for GetCommand<'a> {
     fn execute (&self) -> Result<String, &'static str> {
-       execute_get(&self.args)
+       execute_get(self.args)
     }
 }
 
-fn execute_get(command_array: &[String]) -> Result<String, &'static str> {
+fn execute_get(args: &[&str]) -> Result<String, &'static str> {
     let in_memory_db = Arc::clone(&DB);
     let db: std::sync::MutexGuard<'_, db::InMemoryDb> = in_memory_db.lock().unwrap();
-    match db.get(command_array[1].to_string()) {
-        Some(v) if v.expire_at().map(|t| t <= Utc::now()).unwrap_or(false) => {
+    match db.get(args[0].to_string()) {
+        Some(value) if value.expire_at().map(is_expired).unwrap_or_default() => {
             Ok(resp::create_null_bulk_string())
         }
-        Some(v) => {
-            Ok(resp::create_bulk_string(v.str_val()))
+        Some(value) => {
+            Ok(resp::create_bulk_string(value.str_val()))
         }
         None => {
             Ok(resp::create_null_bulk_string())
         },
     }
+}
+
+fn is_expired(t: DateTime<Utc>) -> bool {
+    t < Utc::now()
 }

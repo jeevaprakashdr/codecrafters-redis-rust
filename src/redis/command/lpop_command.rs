@@ -5,28 +5,28 @@ use std::str::FromStr;
 use crate::redis::resp::{create_array, create_bulk_string, create_null_bulk_string};
 use crate::redis::db::{self, DB};
 use crate::redis::command::Command;
-pub struct LpopCommand {
-    pub args: Vec<String>
+pub struct LpopCommand<'a> {
+    pub args: &'a [&'a str]
 }
 
-impl Command for LpopCommand {
+impl<'a> Command for LpopCommand<'a> {
     fn execute (&self) -> Result<String, &'static str> {
-       execute_lpop(&self.args)
+       execute_lpop(self.args)
     }
 }
 
-fn execute_lpop(args: &[String]) -> Result<String, &'static str> {
+fn execute_lpop(args: &[&str]) -> Result<String, &'static str> {
     let in_memory_db = Arc::clone(&DB);
     let mut db: std::sync::MutexGuard<'_, db::InMemoryDb> = in_memory_db.lock().unwrap();
-    match db.get_mut(args[1].to_string()) {
+    match db.get_mut(args[0].to_string()) {
         Some(data) => {
             if data.list().len() == 0 {
                 return Ok(create_null_bulk_string())
             }
 
             let current= data.list().to_vec();
-            let number_of_elements = args.get(2)
-                .map(|f |usize::from_str(f.as_str()).unwrap_or(0))
+            let number_of_elements = args.get(1)
+                .map(|f |usize::from_str(f).unwrap_or(0))
                 .unwrap_or(1);
          
             data.set_list(&current[number_of_elements..]);

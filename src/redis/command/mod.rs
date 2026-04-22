@@ -89,22 +89,24 @@ impl Display for RedisCommand {
 }
 
 impl RedisCommand {
-    pub fn execute(command_array: Vec<String>) -> Result<String, &'static str> {
-        let command: Box<dyn Command> = match RedisCommand::from_str(command_array[0].as_str()) {
+    pub fn execute(command_array: &[&str]) -> Result<String, &'static str> {
+        let command = command_array[0];
+        let args = &command_array[1..];
+        let command: Box<dyn Command> = match RedisCommand::from_str(command) {
             Ok(RedisCommand::Ping) => Box::new(ping_command::PingCommand{}),
-            Ok(RedisCommand::Echo) => Box::new(echo_command::EchoCommand{args: command_array}),
-            Ok(RedisCommand::Set) => Box::new(set_command::SetCommand{args: command_array}),
-            Ok(RedisCommand::Get) => Box::new(get_command::GetCommand{args: command_array}),
-            Ok(RedisCommand::Lpush) => Box::new(lpush_command::LpushCommand{args: command_array}),
-            Ok(RedisCommand::Rpush) => Box::new(rpush_command::RpushCommand{args: command_array}),
-            Ok(RedisCommand::Lrange) => Box::new(lrange_command::LrangeCommand{args: command_array}),
-            Ok(RedisCommand::Llen) => Box::new(llen_command::LlenCommand{args: command_array}),
-            Ok(RedisCommand::Lpop) => Box::new(lpop_command::LpopCommand{args: command_array}),
-            Ok(RedisCommand::Blpop) => Box::new(blpop_command::BlPopCommand{args: command_array}),
-            Ok(RedisCommand::Type) => Box::new(type_command::TypeCommand{args: command_array}),
-            Ok(RedisCommand::Xadd) => Box::new(xadd_command::XaddCommand{args: command_array}),
-            Ok(RedisCommand::Xrange) => Box::new(Xrange{args: command_array}),
-            Ok(RedisCommand::Xread) => Box::new(Xread{args: command_array}),
+            Ok(RedisCommand::Echo) => Box::new(echo_command::EchoCommand{args}),
+            Ok(RedisCommand::Set) => Box::new(set_command::SetCommand{args}),
+            Ok(RedisCommand::Get) => Box::new(get_command::GetCommand{args}),
+            Ok(RedisCommand::Lpush) => Box::new(lpush_command::LpushCommand{args}),
+            Ok(RedisCommand::Rpush) => Box::new(rpush_command::RpushCommand{args}),
+            Ok(RedisCommand::Lrange) => Box::new(lrange_command::LrangeCommand{args}),
+            Ok(RedisCommand::Llen) => Box::new(llen_command::LlenCommand{args}),
+            Ok(RedisCommand::Lpop) => Box::new(lpop_command::LpopCommand{args}),
+            Ok(RedisCommand::Blpop) => Box::new(blpop_command::BlPopCommand{args}),
+            Ok(RedisCommand::Type) => Box::new(type_command::TypeCommand{args}),
+            Ok(RedisCommand::Xadd) => Box::new(xadd_command::XaddCommand{args}),
+            Ok(RedisCommand::Xrange) => Box::new(Xrange{args}),
+            Ok(RedisCommand::Xread) => Box::new(Xread{args}),
             Err(_) => Box::new(InvalidCommand{}),
         };
 

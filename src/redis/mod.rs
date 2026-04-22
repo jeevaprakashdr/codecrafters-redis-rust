@@ -33,7 +33,8 @@ pub fn handle_connection(
 
                 let cmd = str::from_utf8(&buffer[..bytes_count]).unwrap();
                 if let Ok(parsed_command_array) = resp::parse(cmd) {
-                    match RedisCommand::execute(parsed_command_array) {
+                    let command_array = &parsed_command_array.iter().map(|f| f.as_str()).collect::<Vec<_>>();
+                    match RedisCommand::execute(command_array) {
                         Ok(response) => {
                             stream.write_all(response.as_bytes()).unwrap();
                         },

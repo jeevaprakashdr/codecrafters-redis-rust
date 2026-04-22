@@ -7,29 +7,29 @@ use crate::redis::resp;
 use crate::redis::db::{self, DB};
 use crate::redis::command::Command;
 
-pub struct LrangeCommand {
-    pub args: Vec<String>
+pub struct LrangeCommand<'a> {
+    pub args: &'a [&'a str]
 }
 
-impl Command for LrangeCommand {
+impl<'a> Command for LrangeCommand<'a> {
     fn execute (&self) -> Result<String, &'static str> {
-       execute_lrange(&self.args)
+       execute_lrange(self.args)
     }
 }
 
-fn execute_lrange(args: &[String]) -> Result<String, &'static str> {
+fn execute_lrange(args: &[&str]) -> Result<String, &'static str> {
     let in_memory_db = Arc::clone(&DB);
     let db: std::sync::MutexGuard<'_, db::InMemoryDb> = in_memory_db.lock().unwrap();
 
-    if let Some(data) = db.get(args[1].to_string()) {
+    if let Some(data) = db.get(args[0].to_string()) {
         let len = data.list().len() as isize;
 
-         let start_index = isize::from_str(args[2].as_str())
+         let start_index = isize::from_str(args[1])
             .map(|s| normalize_index(len, s))
             .unwrap_or(0)
             .clamp(0, len);
 
-        let stop_index = isize::from_str(args[3].as_str())
+        let stop_index = isize::from_str(args[2])
             .map(|s| normalize_index(len, s))
             .unwrap_or(0)
             .clamp(-1, len - 1);

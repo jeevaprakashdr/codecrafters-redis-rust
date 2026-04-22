@@ -9,11 +9,11 @@ use crate::redis::resp::{
 };
 use crate::redis::stream::{Stream, StreamEntryId};
 
-pub struct Xread {
-    pub args: Vec<String>,
+pub struct Xread<'a> {
+    pub args: &'a [&'a str]
 }
 
-impl Command for Xread {
+impl<'a> Command for Xread<'a> {
     fn execute(&self) -> Result<String, &'static str> {
         let timeout = self.get_timeout();
         let mut timeout_expired = false;
@@ -42,7 +42,7 @@ impl Command for Xread {
     }
 }
 
-impl Xread {
+impl<'a> Xread<'a> {
     fn execute(&self) -> Result<String, &'static str> {
         let stream_keys = self.get_arg_stream_keys();
         let start_entry_ids = self.get_arg_stream_entry_ids();
@@ -51,7 +51,7 @@ impl Xread {
             .iter()
             .enumerate()
             .map(|(index, key)| {
-                if self.args.last() == Some(&"$".to_string()) {
+                if self.args.last() == Some(&"$") {
                     self.fetch_latest_data(key)
                 } else {
                     self.fetch_data(
@@ -150,18 +150,18 @@ impl Xread {
 
     fn get_timeout(&self) -> usize {
         if self.has_blocking_request() {
-            usize::from_str(self.args[2].as_str()).unwrap_or(0)
+            usize::from_str(self.args[1]).unwrap_or(0)
         } else {
             0
         }
     }
 
     fn block_until_latest_record(&self) -> bool {
-        self.args.last() == Some(&"$".to_string())
+        self.args.last() == Some(&"$")
     }
 
     fn get_arg_stream_keys(&self) -> Vec<String> {
-        let start_index = if self.has_blocking_request() { 4 } else { 2 };
+        let start_index = if self.has_blocking_request() { 3 } else { 1 };
         self.args
             .iter()
             .skip(start_index)
@@ -171,13 +171,13 @@ impl Xread {
     }
 
     fn get_arg_stream_entry_ids(&self) -> Vec<StreamEntryId> {
-        let start_index = if self.has_blocking_request() { 4 } else { 2 };
+        let start_index = if self.has_blocking_request() { 3 } else { 1 };
         self.args
             .iter()
             .skip(start_index)
             .filter(|arg| arg.contains("-"))
             .map(|arg| {
-                StreamEntryId::from_str(arg.as_str()).unwrap_or(StreamEntryId { ms: 0, seqno: 0 })
+                StreamEntryId::from_str(arg).unwrap_or(StreamEntryId { ms: 0, seqno: 0 })
             })
             .collect::<Vec<_>>()
     }

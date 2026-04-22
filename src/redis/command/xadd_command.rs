@@ -3,29 +3,29 @@ use std::{arch::x86_64, collections::{HashMap, HashSet}, str::FromStr, sync::Arc
 use crate::redis::{command::Command, db::{self, DB, Value}, resp::create_bulk_string, stream::{Stream, StreamEntryId}};
 
 
-pub struct XaddCommand {
-    pub args: Vec<String>
+pub struct XaddCommand<'a> {
+    pub args: &'a [&'a str]
 }
 
-impl Command for XaddCommand {
+impl<'a> Command for XaddCommand<'a> {
     fn execute (&self) -> Result<String, &'static str> {
         let in_memory_db = Arc::clone(&DB);
         let mut db: std::sync::MutexGuard<'_, db::InMemoryDb> = in_memory_db.lock().unwrap();
         
-        match db.get_mut(self.args[1].to_string()) {
+        match db.get_mut(self.args[0].to_string()) {
             Some(data) => {
                 let stream_entry_id = 
-                    if self.args[2] == "*" {
+                    if self.args[1] == "*" {
                         StreamEntryId::default()
-                    } else if self.args[2].contains("*") {
-                        let new: StreamEntryId = StreamEntryId::from_str(self.args[2].as_str()).unwrap_or_default();
+                    } else if self.args[1].contains("*") {
+                        let new: StreamEntryId = StreamEntryId::from_str(self.args[1]).unwrap_or_default();
                         data.stream()
                             .iter()
                             .find(|x| x.id >= new)
                             .map(|x| StreamEntryId::new(x.id.ms, x.id.seqno + 1))
                             .unwrap_or(new)
                     } else {
-                        StreamEntryId::from_str(self.args[2].as_str()).unwrap()
+                        StreamEntryId::from_str(self.args[1]).unwrap()
                     };
                 println!("{}", stream_entry_id);
 
@@ -39,9 +39,9 @@ impl Command for XaddCommand {
                 
                 let stream_content = self.args
                     .iter()
-                    .skip(3)
-                    .cloned()
-                    .collect::<Vec<String>>();
+                    .skip(2)
+                    .map(|f| f.to_string())
+                    .collect::<Vec<_>>();
 
                 let mut en = HashMap::new();
                 en.insert(stream_entry_id.to_string(), stream_content.to_owned());
@@ -54,12 +54,12 @@ impl Command for XaddCommand {
             None => {
                 let stream_content = self.args
                     .iter()
-                    .skip(3)
-                    .cloned()
-                    .collect::<Vec<String>>();
+                    .skip(2)
+                    .map(|f| f.to_string())
+                    .collect::<Vec<_>>();
 
-                let key = self.args[1].to_string();
-                let stream_entry_id = StreamEntryId::from_str(self.args[2].as_str()).unwrap();
+                let key = self.args[0].to_string();
+                let stream_entry_id = StreamEntryId::from_str(self.args[1]).unwrap();
                 let mut en = HashMap::new();
                 en.insert(stream_entry_id.to_string(), stream_content.to_owned());
                 
@@ -67,6 +67,7 @@ impl Command for XaddCommand {
                     id: stream_entry_id,
                     entries: stream_content,
                 }]);
+
                 db.insert(key, value);
 
                 Ok(create_bulk_string(stream_entry_id.to_string().as_str()))
