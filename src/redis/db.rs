@@ -6,7 +6,7 @@ use crate::redis::stream::{Stream, StreamEntryId};
 
 #[derive(Debug)]
 pub struct Value {
-    pub str : String,
+    str : String,
     pub list : Vec<String>,
     pub stream : Vec<Stream>,
     pub expire_at : Option<DateTime<Utc>>,
@@ -33,6 +33,11 @@ impl Value {
     pub fn with_stream(stream : Vec<Stream>) -> Self {
         Value::new(String::new(), vec![], stream, None)
     }
+
+    pub fn str_val(&self) -> &str { &self.str }
+    pub fn list(&self) -> &[String] { &self.list }
+    pub fn stream(&self) -> &[Stream] { &self.stream }
+    pub fn expire_at(&self) -> Option<DateTime<Utc>> { self.expire_at }
 }
 
 pub struct InMemoryDb {
