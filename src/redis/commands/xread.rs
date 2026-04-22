@@ -2,7 +2,7 @@ use std::time::Duration;
 use std::{str::FromStr, sync::Arc};
 use std::{thread, time};
 
-use crate::redis::command::Command;
+use crate::redis::commands::Command;
 use crate::redis::db::{self, DB};
 use crate::redis::resp::{
     create_array, create_bulk_string, create_empty_array, create_null_array, create_resp_array,
@@ -73,7 +73,7 @@ impl<'a> Xread<'a> {
         }
     }
 
-    fn fetch_latest_data(&self, stream_key: &String) -> Vec<String> {
+    fn fetch_latest_data(&self, stream_key: &str) -> Vec<String> {
         let in_memory_db = Arc::clone(&DB);
         let mut db: std::sync::MutexGuard<'_, db::InMemoryDb> = in_memory_db.lock().unwrap();
 
@@ -90,13 +90,13 @@ impl<'a> Xread<'a> {
                     .map(|streams| create_resp_array(&streams.iter().map(|f|f.as_str()).collect::<Vec<_>>()))
                     .map(|stream_data| vec![stream_data])
                     .map(|stream_data| self.create_resp_stream_array(stream_key, &stream_data))
-                    .unwrap_or_else(|| vec![])
+                    .unwrap_or_else(Vec::new)
             }
             None => vec![],
         }
     }
 
-    fn fetch_data(&self, start: StreamEntryId, stream_key: &String) -> Vec<String> {
+    fn fetch_data(&self, start: StreamEntryId, stream_key: &str) -> Vec<String> {
         let in_memory_db = Arc::clone(&DB);
         let mut db: std::sync::MutexGuard<'_, db::InMemoryDb> = in_memory_db.lock().unwrap();
 
@@ -145,7 +145,7 @@ impl<'a> Xread<'a> {
     fn has_blocking_request(&self) -> bool {
         self.args
             .iter()
-            .any(|arg| arg.to_lowercase() == "block".to_string())
+            .any(|arg| arg.to_lowercase() == "block")
     }
 
     fn get_timeout(&self) -> usize {

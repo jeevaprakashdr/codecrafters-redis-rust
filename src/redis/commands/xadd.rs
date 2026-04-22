@@ -1,13 +1,13 @@
 use std::{arch::x86_64, collections::{HashMap, HashSet}, str::FromStr, sync::Arc};
 
-use crate::redis::{command::Command, db::{self, DB, Value}, resp::create_bulk_string, stream::{Stream, StreamEntryId}};
+use crate::redis::{commands::Command, db::{self, DB, Value}, resp::create_bulk_string, stream::{Stream, StreamEntryId}};
 
 
-pub struct XaddCommand<'a> {
+pub struct Xadd<'a> {
     pub args: &'a [&'a str]
 }
 
-impl<'a> Command for XaddCommand<'a> {
+impl<'a> Command for Xadd<'a> {
     fn execute (&self) -> Result<String, &'static str> {
         let in_memory_db = Arc::clone(&DB);
         let mut db: std::sync::MutexGuard<'_, db::InMemoryDb> = in_memory_db.lock().unwrap();

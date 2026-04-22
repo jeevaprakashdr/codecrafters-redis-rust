@@ -4,12 +4,12 @@ use std::str::FromStr;
 
 use crate::redis::resp::{create_array, create_bulk_string, create_null_bulk_string};
 use crate::redis::db::{self, DB};
-use crate::redis::command::Command;
-pub struct LpopCommand<'a> {
+use crate::redis::commands::Command;
+pub struct Lpop<'a> {
     pub args: &'a [&'a str]
 }
 
-impl<'a> Command for LpopCommand<'a> {
+impl<'a> Command for Lpop<'a> {
     fn execute (&self) -> Result<String, &'static str> {
        execute_lpop(self.args)
     }
@@ -20,7 +20,7 @@ fn execute_lpop(args: &[&str]) -> Result<String, &'static str> {
     let mut db: std::sync::MutexGuard<'_, db::InMemoryDb> = in_memory_db.lock().unwrap();
     match db.get_mut(args[0]) {
         Some(data) => {
-            if data.list().len() == 0 {
+            if data.list().is_empty() {
                 return Ok(create_null_bulk_string())
             }
 

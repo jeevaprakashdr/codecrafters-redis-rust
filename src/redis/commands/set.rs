@@ -3,18 +3,18 @@ use std::sync::Arc;
 
 use chrono::Utc;
 
-use crate::redis::command::Command;
+use crate::redis::commands::Command;
 use crate::redis::db::{self, DB};
 use crate::redis::resp;
 use crate::redis::stream::Stream;
 
-pub struct SetCommand<'a> {
+pub struct Set<'a> {
     pub args: &'a [&'a str],
 }
 
-impl<'a> Command for SetCommand<'a> {
+impl<'a> Command for Set<'a> {
     fn execute(&self) -> Result<String, &'static str> {
-        execute_set(&self.args)
+        execute_set(self.args)
     }
 }
 

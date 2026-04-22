@@ -1,6 +1,6 @@
 pub mod resp;
 pub mod db;
-pub mod command;
+pub mod commands;
 
 mod stream;
 
@@ -14,7 +14,7 @@ use std::{
 use std::sync::{Arc, Mutex};
 use chrono::Utc;
 
-use crate::redis::command::RedisCommand;
+use crate::redis::commands::RedisCommand;
 
 pub fn handle_connection(
     stream: Result<TcpStream, Error>) {

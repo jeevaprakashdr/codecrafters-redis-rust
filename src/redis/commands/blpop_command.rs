@@ -1,4 +1,4 @@
-use crate::redis::{command::Command, db::{self, DB}, resp::{create_array, create_null_array}};
+use crate::redis::{commands::Command, db::{self, DB}, resp::{create_array, create_null_array}};
 use std::{fmt::Display, str::FromStr, sync::Arc, thread, time::Duration};
 
 pub struct BlPopCommand<'a> {

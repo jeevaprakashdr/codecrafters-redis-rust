@@ -1,12 +1,12 @@
 use std::sync::Arc;
 
-use crate::redis::{command::Command, db::{self, DB}, resp::create_simple_string};
+use crate::redis::{commands::Command, db::{self, DB}, resp::create_simple_string};
 
-pub struct TypeCommand<'a> {
+pub struct Type<'a> {
     pub args: &'a [&'a str]
 }
 
-impl<'a> Command for TypeCommand<'a> {
+impl<'a> Command for Type<'a> {
     fn execute (&self) -> Result<String, &'static str> {
        let in_memory_db = Arc::clone(&DB);
         let db: std::sync::MutexGuard<'_, db::InMemoryDb> = in_memory_db.lock().unwrap();

@@ -5,13 +5,13 @@ use chrono::Utc;
 
 use crate::redis::resp;
 use crate::redis::db::{self, DB};
-use crate::redis::command::Command;
+use crate::redis::commands::Command;
 
-pub struct LrangeCommand<'a> {
+pub struct Lrange<'a> {
     pub args: &'a [&'a str]
 }
 
-impl<'a> Command for LrangeCommand<'a> {
+impl<'a> Command for Lrange<'a> {
     fn execute (&self) -> Result<String, &'static str> {
        execute_lrange(self.args)
     }

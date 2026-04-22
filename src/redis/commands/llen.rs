@@ -1,14 +1,14 @@
 use std::sync::Arc;
 
-use crate::redis::command::Command;
+use crate::redis::commands::Command;
 use crate::redis::resp::create_simple_integer;
 use crate::redis::db::{self, DB};
 
-pub struct LlenCommand<'a> {
+pub struct Llen<'a> {
     pub args: &'a [&'a str]
 }
 
-impl<'a> Command for LlenCommand<'a> {
+impl<'a> Command for Llen<'a> {
     fn execute (&self) -> Result<String, &'static str> {
        execute_llen(self.args)
     }
