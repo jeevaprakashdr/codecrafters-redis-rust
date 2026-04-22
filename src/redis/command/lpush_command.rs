@@ -38,12 +38,7 @@ fn execute_lpush(args: &[String]) -> Result<String, &'static str> {
                 .map(|f| f.to_string())
                 .collect();
             let count = list_items.len();
-            let value = db::Value {
-                val: "".to_string(),
-                expire_at: None, 
-                list: list_items,
-                stream: vec![]
-            };
+            let value = db::Value::with_list(list_items);
             db.insert(args[1].to_string(), value);
             Ok(resp::create_simple_integer(count))
         }

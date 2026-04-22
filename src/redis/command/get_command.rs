@@ -24,7 +24,7 @@ fn execute_get(command_array: &[String]) -> Result<String, &'static str> {
             Ok(resp::create_null_bulk_string())
         }
         Some(v) => {
-            Ok(resp::create_bulk_string(v.val.as_str()))
+            Ok(resp::create_bulk_string(v.str.as_str()))
         }
         None => {
             Ok(resp::create_null_bulk_string())

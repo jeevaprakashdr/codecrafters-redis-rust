@@ -12,7 +12,7 @@ impl Command for TypeCommand {
         let db: std::sync::MutexGuard<'_, db::InMemoryDb> = in_memory_db.lock().unwrap();
         match db.get(self.args[1].to_string()) {
             Some(data) => {
-                if !data.val.is_empty() {
+                if !data.str.is_empty() {
                     return Ok(create_simple_string("string"))        
                 }
                 

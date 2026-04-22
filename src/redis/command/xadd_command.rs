@@ -62,17 +62,13 @@ impl Command for XaddCommand {
                 let stream_entry_id = StreamEntryId::from_str(self.args[2].as_str()).unwrap();
                 let mut en = HashMap::new();
                 en.insert(stream_entry_id.to_string(), stream_content.to_owned());
-                let val  = Value {
-                    val: "".to_string(),
-                    expire_at: None,
-                    list: vec![], 
-                    stream: vec![Stream {
-                        id: stream_entry_id,
-                        entries: stream_content,
-                    }],
-                };
-
-                db.insert(key, val);
+                
+                let value  = Value::with_stream(vec![Stream {
+                    id: stream_entry_id,
+                    entries: stream_content,
+                }]);
+                db.insert(key, value);
+                
                 Ok(create_bulk_string(stream_entry_id.to_string().as_str()))
             },
         }
