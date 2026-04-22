@@ -10,7 +10,7 @@ impl<'a> Command for TypeCommand<'a> {
     fn execute (&self) -> Result<String, &'static str> {
        let in_memory_db = Arc::clone(&DB);
         let db: std::sync::MutexGuard<'_, db::InMemoryDb> = in_memory_db.lock().unwrap();
-        match db.get(self.args[0].to_string()) {
+        match db.get(self.args[0]) {
             Some(data) => {
                 if !data.str_val().is_empty() {
                     return Ok(create_simple_string("string"))        

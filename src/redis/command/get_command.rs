@@ -19,7 +19,7 @@ impl<'a> Command for GetCommand<'a> {
 fn execute_get(args: &[&str]) -> Result<String, &'static str> {
     let in_memory_db = Arc::clone(&DB);
     let db: std::sync::MutexGuard<'_, db::InMemoryDb> = in_memory_db.lock().unwrap();
-    match db.get(args[0].to_string()) {
+    match db.get(args[0]) {
         Some(value) if value.expire_at().map(is_expired).unwrap_or_default() => {
             Ok(resp::create_null_bulk_string())
         }

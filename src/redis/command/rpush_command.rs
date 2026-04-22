@@ -20,7 +20,7 @@ impl<'a> Command for RpushCommand<'a> {
 fn execute_rpush(args: &[&str]) -> Result<String, &'static str> {
     let in_memory_db = Arc::clone(&DB);
     let mut db: std::sync::MutexGuard<'_, db::InMemoryDb> = in_memory_db.lock().unwrap();
-    match db.get_mut(args[0].to_string()) {
+    match db.get_mut(args[0]) {
         Some(record) => {
             let mut current= record.list().to_vec();
             let mut update = list_items(args);
@@ -33,7 +33,7 @@ fn execute_rpush(args: &[&str]) -> Result<String, &'static str> {
             let list_items = list_items(args);
             let count = list_items.len();
             let value = db::Value::with_list(list_items);
-            db.insert(args[0].to_string(), value);
+            db.insert(args[0], value);
             Ok(resp::create_simple_integer(count))
         }
     }

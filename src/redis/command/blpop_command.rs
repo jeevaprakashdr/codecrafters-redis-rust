@@ -38,7 +38,7 @@ fn execute_blpop(args: &[&str]) -> Result<String, &'static str> {
 fn blpop(args: &[&str]) -> Option<String> {
     let in_memory_db = Arc::clone(&DB);
     let mut db: std::sync::MutexGuard<'_, db::InMemoryDb> = in_memory_db.lock().unwrap();
-    match db.get_mut(args[0].to_string()) {
+    match db.get_mut(args[0]) {
         Some(data) => {
             match data.list().to_vec().split_first() {
                 Some((first, rest)) => {

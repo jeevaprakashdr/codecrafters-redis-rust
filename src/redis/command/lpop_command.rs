@@ -18,7 +18,7 @@ impl<'a> Command for LpopCommand<'a> {
 fn execute_lpop(args: &[&str]) -> Result<String, &'static str> {
     let in_memory_db = Arc::clone(&DB);
     let mut db: std::sync::MutexGuard<'_, db::InMemoryDb> = in_memory_db.lock().unwrap();
-    match db.get_mut(args[0].to_string()) {
+    match db.get_mut(args[0]) {
         Some(data) => {
             if data.list().len() == 0 {
                 return Ok(create_null_bulk_string())

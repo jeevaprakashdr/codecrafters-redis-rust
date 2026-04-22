@@ -77,7 +77,7 @@ impl<'a> Xread<'a> {
         let in_memory_db = Arc::clone(&DB);
         let mut db: std::sync::MutexGuard<'_, db::InMemoryDb> = in_memory_db.lock().unwrap();
 
-        match db.get_mut(stream_key.to_string()) {
+        match db.get_mut(stream_key) {
             Some(data) => {
                 if data.stream().is_empty() {
                     return vec![];
@@ -100,7 +100,7 @@ impl<'a> Xread<'a> {
         let in_memory_db = Arc::clone(&DB);
         let mut db: std::sync::MutexGuard<'_, db::InMemoryDb> = in_memory_db.lock().unwrap();
 
-        match db.get_mut(stream_key.to_string()) {
+        match db.get_mut(stream_key) {
             Some(data) => data
                 .stream()
                 .iter()

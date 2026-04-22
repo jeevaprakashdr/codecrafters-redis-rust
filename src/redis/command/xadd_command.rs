@@ -12,7 +12,7 @@ impl<'a> Command for XaddCommand<'a> {
         let in_memory_db = Arc::clone(&DB);
         let mut db: std::sync::MutexGuard<'_, db::InMemoryDb> = in_memory_db.lock().unwrap();
         
-        match db.get_mut(self.args[0].to_string()) {
+        match db.get_mut(self.args[0]) {
             Some(data) => {
                 let stream_entry_id = 
                     if self.args[1] == "*" {
@@ -58,7 +58,7 @@ impl<'a> Command for XaddCommand<'a> {
                     .map(|f| f.to_string())
                     .collect::<Vec<_>>();
 
-                let key = self.args[0].to_string();
+                let key = self.args[0];
                 let stream_entry_id = StreamEntryId::from_str(self.args[1]).unwrap();
                 let mut en = HashMap::new();
                 en.insert(stream_entry_id.to_string(), stream_content.to_owned());

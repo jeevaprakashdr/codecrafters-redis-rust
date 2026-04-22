@@ -21,7 +21,7 @@ fn execute_lrange(args: &[&str]) -> Result<String, &'static str> {
     let in_memory_db = Arc::clone(&DB);
     let db: std::sync::MutexGuard<'_, db::InMemoryDb> = in_memory_db.lock().unwrap();
 
-    if let Some(data) = db.get(args[0].to_string()) {
+    if let Some(data) = db.get(args[0]) {
         let len = data.list().len() as isize;
 
          let start_index = isize::from_str(args[1])

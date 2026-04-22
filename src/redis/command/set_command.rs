@@ -26,7 +26,7 @@ fn execute_set(args: &[&str]) -> Result<String, &'static str> {
         return Err("Invalid arguments");
     }
 
-    let key = args[0].to_string();
+    let key = args[0];
     let val = args[1].to_string();
 
     let mut value = db::Value::with_str(val);

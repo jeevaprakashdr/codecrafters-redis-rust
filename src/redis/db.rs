@@ -62,16 +62,16 @@ impl InMemoryDb {
         }
     }
 
-    pub fn get(&self, key: String) -> Option<&Value> {
-        self.data.get(key.as_str())
+    pub fn get(&self, key: &str) -> Option<&Value> {
+        self.data.get(key)
     }
 
-     pub fn get_mut(&mut self, key: String) -> Option<&mut Value> {
-        self.data.get_mut(key.as_str())
+     pub fn get_mut(&mut self, key: &str) -> Option<&mut Value> {
+        self.data.get_mut(key)
     }
 
-    pub fn insert(&mut self, key: String, val: Value) -> Option<Value> {
-        self.data.insert(key, val)
+    pub fn insert(&mut self, key: &str, val: Value) -> Option<Value> {
+        self.data.insert(key.to_string(), val)
     }
 }
 
