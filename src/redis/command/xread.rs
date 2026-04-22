@@ -63,11 +63,11 @@ impl Xread {
                 }
             })
             .filter(|vec| !vec.is_empty())
-            .map(|stream_data| create_resp_array(&stream_data))
+            .map(|stream_data| create_resp_array(&stream_data.iter().map(|f|f.as_str()).collect::<Vec<_>>()))
             .collect();
 
         if !out.is_empty() {
-            Ok(create_resp_array(&out))
+            Ok(create_resp_array(&out.iter().map(|f|f.as_str()).collect::<Vec<_>>()))
         } else {
             Err("No data found")
         }
@@ -86,7 +86,7 @@ impl Xread {
                 data.stream
                     .last()
                     .map(|stream| self.create_stream_entry_array(stream))
-                    .map(|streams| create_resp_array(&streams))
+                    .map(|streams| create_resp_array(&streams.iter().map(|f|f.as_str()).collect::<Vec<_>>()))
                     .map(|stream_data| vec![stream_data])
                     .map(|stream_data| self.create_resp_stream_array(stream_key, &stream_data))
                     .unwrap_or_else(|| vec![])
@@ -107,7 +107,7 @@ impl Xread {
                 .collect::<Vec<_>>()
                 .iter()
                 .map(|stream| self.create_stream_entry_array(stream))
-                .map(|streams| create_resp_array(&streams))
+                .map(|streams| create_resp_array(&streams.iter().map(|f|f.as_str()).collect::<Vec<_>>()))
                 .map(|stream_data| vec![stream_data])
                 .flat_map(|stream_data| self.create_resp_stream_array(stream_key, &stream_data))
                 .collect(),
@@ -137,7 +137,7 @@ impl Xread {
     fn create_resp_stream_array(&self, stream_key: &str, stream_data: &[String]) -> Vec<String> {
         vec![
             create_bulk_string(stream_key),
-            create_resp_array(stream_data),
+            create_resp_array(&stream_data.iter().map(|f| f.as_str()).collect::<Vec<_>>()),
         ]
     }
 

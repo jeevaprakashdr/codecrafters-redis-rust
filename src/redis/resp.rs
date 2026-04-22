@@ -132,8 +132,8 @@ pub fn create_null_bulk_string() -> String {
     "$-1\r\n".to_string()
 }
 
-pub fn create_resp_array(data: &[String]) -> String {
-    format!("*{}\r\n{}", data.len(), data.join(""))
+pub fn create_resp_array(val: &[&str]) -> String {
+    format!("*{}\r\n{}", val.len(), val.join(""))
 }
 
 #[cfg(test)]
