@@ -4,7 +4,9 @@ use std::{thread, time};
 
 use crate::redis::command::Command;
 use crate::redis::db::{self, DB};
-use crate::redis::resp::{create_array, create_bulk_string, create_empty_array, create_null_array};
+use crate::redis::resp::{
+    create_array, create_bulk_string, create_empty_array, create_null_array, create_resp_array,
+};
 use crate::redis::stream::{Stream, StreamEntryId};
 
 pub struct Xread {
@@ -19,11 +21,11 @@ impl Command for Xread {
 
         loop {
             if let Ok(data) = self.execute() {
-                if previous.is_empty() && self.on_block_get_latest_record() {
+                if previous.is_empty() && self.block_until_latest_record() {
                     previous = data;
                 } else if !previous.is_empty() && previous != data {
                     return Ok(data);
-                } else if !self.on_block_get_latest_record() {
+                } else if !self.block_until_latest_record() {
                     return Ok(data);
                 }
             }
@@ -61,12 +63,11 @@ impl Xread {
                 }
             })
             .filter(|vec| !vec.is_empty())
-            .map(|stream_data| self.create_resp_array(&stream_data))
+            .map(|stream_data| create_resp_array(&stream_data))
             .collect();
-            
 
         if !out.is_empty() {
-            Ok(self.create_resp_array(&out))
+            Ok(create_resp_array(&out))
         } else {
             Err("No data found")
         }
@@ -85,9 +86,9 @@ impl Xread {
                 data.stream
                     .last()
                     .map(|stream| self.create_stream_entry_array(stream))
-                    .map(|streams| self.create_resp_array(&streams))
-                    .map(|f| vec![f])
-                    .map(|f| self.create_resp_stream_array(stream_key, &f))
+                    .map(|streams| create_resp_array(&streams))
+                    .map(|stream_data| vec![stream_data])
+                    .map(|stream_data| self.create_resp_stream_array(stream_key, &stream_data))
                     .unwrap_or_else(|| vec![])
             }
             None => vec![],
@@ -106,9 +107,9 @@ impl Xread {
                 .collect::<Vec<_>>()
                 .iter()
                 .map(|stream| self.create_stream_entry_array(stream))
-                .map(|streams| self.create_resp_array(&streams))
-                .map(|f| vec![f])
-                .flat_map(|f| self.create_resp_stream_array(stream_key, &f))
+                .map(|streams| create_resp_array(&streams))
+                .map(|stream_data| vec![stream_data])
+                .flat_map(|stream_data| self.create_resp_stream_array(stream_key, &stream_data))
                 .collect(),
             None => {
                 vec![]
@@ -122,7 +123,7 @@ impl Xread {
         }
 
         let bs: String = create_bulk_string(stream.id.to_string().as_str());
-        let arr = create_array(
+        let entry_arr = create_array(
             &stream
                 .entries
                 .iter()
@@ -130,7 +131,7 @@ impl Xread {
                 .collect::<Vec<_>>(),
         );
 
-        vec![bs, arr]
+        vec![bs, entry_arr]
     }
 
     fn create_resp_stream_array(&self, stream_key: &str, stream_data: &[String]) -> Vec<String> {
@@ -138,10 +139,6 @@ impl Xread {
             create_bulk_string(stream_key),
             create_resp_array(stream_data),
         ]
-    }
-
-    fn create_resp_array(&self, data: &[String]) -> String {
-        format!("*{}\r\n{}", data.len(), data.join(""))
     }
 
     fn has_blocking_request(&self) -> bool {
@@ -158,7 +155,7 @@ impl Xread {
         }
     }
 
-    fn on_block_get_latest_record(&self) -> bool {
+    fn block_until_latest_record(&self) -> bool {
         self.args.last() == Some(&"$".to_string())
     }
 
