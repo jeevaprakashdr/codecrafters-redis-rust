@@ -31,11 +31,10 @@ fn execute_lpop(args: &[String]) -> Result<String, &'static str> {
          
             data.list = current[number_of_elements..].to_vec();
             
-            let popped = current[0..number_of_elements].to_vec();
-            if popped.len() == 1 {
-                Ok(create_bulk_string(popped[0].as_str()))
+            if current[0..number_of_elements].len() == 1 {
+                Ok(create_bulk_string(current[0..number_of_elements].first().unwrap().as_str()))
             } else {
-                Ok(create_array(&popped.iter().map(|s|s.as_str()).collect::<Vec<_>>()))
+                Ok(create_array(&current[0..number_of_elements].iter().map(|s|s.as_str()).collect::<Vec<_>>()))
             }
         }
         None => Ok(create_null_bulk_string())
