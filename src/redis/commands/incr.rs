@@ -23,7 +23,10 @@ impl<'a> Command for Incr<'a> {
                     Err(_) => Err("Not int value"),
                 }
             }
-            None => Ok(create_empty_array()),
+            None => {
+                db.insert(self.args[0], db::Value::with_str("1".to_string()));
+                Ok(create_simple_integer(1))
+            },
         }
     }
 }
