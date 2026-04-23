@@ -1,7 +1,7 @@
 use std::sync::Arc;
 use std::str::FromStr;
 
-use crate::redis::{commands::Command, db::{self, DB}, resp::{create_empty_array, create_simple_integer}};
+use crate::redis::{commands::Command, db::{self, DB}, resp::{create_empty_array, create_simple_integer, create_simple_string}};
 
 pub struct Incr<'a> {
     pub args: &'a [&'a str]
@@ -20,7 +20,7 @@ impl<'a> Command for Incr<'a> {
                         data.set_str_val(new.to_string().as_str());
                         Ok(create_simple_integer(new))
                     } ,
-                    Err(_) => Err("Not int value"),
+                    Err(_) => Err("-ERR value is not an integer or out of range\r\n"),
                 }
             }
             None => {
