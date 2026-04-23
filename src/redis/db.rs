@@ -35,6 +35,10 @@ impl Value {
     }
 
     pub fn str_val(&self) -> &str { &self.str }
+    pub fn set_str_val(&mut self, str: &str) { 
+        self.str = str.to_string()
+    }
+
     pub fn list(&self) -> &[String] { &self.list }
     pub fn set_list(&mut self, list: &[String]) { 
         self.list = list.to_vec()

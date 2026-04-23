@@ -20,6 +20,7 @@ pub fn handle_connection(
     stream: Result<TcpStream, Error>) {
     match stream {
         Ok(mut stream) => {
+            println!("stream {:?}", stream);
             println!("accepted new connection");
             loop {
                 let mut buffer = [0; 512];
@@ -29,7 +30,7 @@ pub fn handle_connection(
                     break;
                 }
                 
-                println!("{:?}", str::from_utf8(&buffer[..bytes_count]));
+                println!("buffer {:?}", str::from_utf8(&buffer[..bytes_count]));
 
                 let cmd = str::from_utf8(&buffer[..bytes_count]).unwrap();
                 if let Ok(parsed_command_array) = resp::parse(cmd) {

@@ -12,6 +12,7 @@ mod r#type;
 mod xadd;
 mod xrange;
 mod xread;
+mod incr;
 
 use core::num;
 use std::thread;
@@ -23,6 +24,7 @@ use crate::redis::commands;
 use crate::redis::commands::blpop_command::BlPopCommand;
 use crate::redis::commands::echo::Echo;
 use crate::redis::commands::get::Get;
+use crate::redis::commands::incr::Incr;
 use crate::redis::commands::llen::Llen;
 use crate::redis::commands::lpop::Lpop;
 use crate::redis::commands::lpush::Lpush;
@@ -39,6 +41,7 @@ use crate::redis::db::{self, DB, Value};
 
 #[derive(Debug, PartialEq)]
 pub enum RedisCommand {
+    Command,
     Ping, 
     Echo,
     Set,
@@ -53,6 +56,7 @@ pub enum RedisCommand {
     Xadd,
     Xrange,
     Xread,
+    Incr,
 }
 
 impl FromStr for RedisCommand {
@@ -60,6 +64,7 @@ impl FromStr for RedisCommand {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s.to_lowercase().as_str() {
+            "command" => Ok(RedisCommand::Command),
             "ping" => Ok(RedisCommand::Ping),
             "echo" => Ok(RedisCommand::Echo),
             "set" => Ok(RedisCommand::Set),
@@ -74,6 +79,7 @@ impl FromStr for RedisCommand {
             "xadd" => Ok(RedisCommand::Xadd),
             "xrange" => Ok(RedisCommand::Xrange),
             "xread" => Ok(RedisCommand::Xread),
+            "incr" => Ok(RedisCommand::Incr),
             _ => Err(format!("unknown command: {}", s))
         }
     }
@@ -84,6 +90,7 @@ impl RedisCommand {
         let command = command_array[0];
         let args = &command_array[1..];
         let command: Box<dyn Command> = match RedisCommand::from_str(command) {
+            Ok(RedisCommand::Command) => Box::new(Ping{}),
             Ok(RedisCommand::Ping) => Box::new(Ping{}),
             Ok(RedisCommand::Echo) => Box::new(Echo{args}),
             Ok(RedisCommand::Set) => Box::new(Set{args}),
@@ -98,6 +105,7 @@ impl RedisCommand {
             Ok(RedisCommand::Xadd) => Box::new(Xadd{args}),
             Ok(RedisCommand::Xrange) => Box::new(Xrange{args}),
             Ok(RedisCommand::Xread) => Box::new(Xread{args}),
+            Ok(RedisCommand::Incr) => Box::new(Incr{args}),
             Err(_) => Box::new(InvalidCommand{}),
         };
 
