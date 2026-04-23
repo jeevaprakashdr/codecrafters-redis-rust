@@ -13,6 +13,7 @@ mod xadd;
 mod xrange;
 mod xread;
 mod incr;
+mod multi;
 
 use core::num;
 use std::thread;
@@ -29,6 +30,7 @@ use crate::redis::commands::llen::Llen;
 use crate::redis::commands::lpop::Lpop;
 use crate::redis::commands::lpush::Lpush;
 use crate::redis::commands::lrange::Lrange;
+use crate::redis::commands::multi::Multi;
 use crate::redis::commands::ping::Ping;
 use crate::redis::commands::rpush::Rpush;
 use crate::redis::commands::set::Set;
@@ -57,6 +59,7 @@ pub enum RedisCommand {
     Xrange,
     Xread,
     Incr,
+    Multi,
 }
 
 impl FromStr for RedisCommand {
@@ -80,6 +83,7 @@ impl FromStr for RedisCommand {
             "xrange" => Ok(RedisCommand::Xrange),
             "xread" => Ok(RedisCommand::Xread),
             "incr" => Ok(RedisCommand::Incr),
+            "multi" => Ok(RedisCommand::Multi),
             _ => Err(format!("unknown command: {}", s))
         }
     }
@@ -106,6 +110,7 @@ impl RedisCommand {
             Ok(RedisCommand::Xrange) => Box::new(Xrange{args}),
             Ok(RedisCommand::Xread) => Box::new(Xread{args}),
             Ok(RedisCommand::Incr) => Box::new(Incr{args}),
+            Ok(RedisCommand::Multi) => Box::new(Multi{args}),
             Err(_) => Box::new(InvalidCommand{}),
         };
 
