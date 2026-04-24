@@ -5,6 +5,6 @@ pub struct Exec {
 
 impl Command for Exec {
     fn execute (&self) -> Result<String, &'static str> {
-        Ok(create_simple_string("OK"))
+        Ok("-ERR EXEC without MULTI\r\n".to_string())
     }
 }

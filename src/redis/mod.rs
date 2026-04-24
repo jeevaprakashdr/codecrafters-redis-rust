@@ -20,7 +20,7 @@ pub fn handle_connection(
     stream: Result<TcpStream, Error>) {
     match stream {
         Ok(mut stream) => {
-            println!("stream {:?}", stream.fd);
+            println!("stream {:?}", stream);
             println!("accepted new connection");
             loop {
                 let mut buffer = [0; 512];
