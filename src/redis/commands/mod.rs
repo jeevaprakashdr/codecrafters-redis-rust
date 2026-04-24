@@ -94,7 +94,7 @@ impl FromStr for RedisCommand {
 }
 
 impl RedisCommand {
-    pub fn execute(command_array: &[&str]) -> Result<String, &'static str> {
+    pub fn execute(client_id: u64, command_array: &[&str]) -> Result<String, &'static str> {
         let command = command_array[0];
         let args = &command_array[1..];
         let command: Box<dyn Command> = match RedisCommand::from_str(command) {
@@ -114,8 +114,8 @@ impl RedisCommand {
             Ok(RedisCommand::Xrange) => Box::new(Xrange{args}),
             Ok(RedisCommand::Xread) => Box::new(Xread{args}),
             Ok(RedisCommand::Incr) => Box::new(Incr{args}),
-            Ok(RedisCommand::Multi) => Box::new(Multi{}),
-            Ok(RedisCommand::Exec) => Box::new(Exec{}),
+            Ok(RedisCommand::Multi) => Box::new(Multi{client_id}),
+            Ok(RedisCommand::Exec) => Box::new(Exec{client_id}),
             Err(_) => Box::new(InvalidCommand{}),
         };
 
