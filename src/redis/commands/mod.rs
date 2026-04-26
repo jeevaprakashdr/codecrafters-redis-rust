@@ -99,37 +99,38 @@ impl RedisCommand {
         -> Result<String, &'static str> {
         let command = command_array[0];
         let args = &command_array[1..];
-        let command = create_command(redis_setting, command, args);
+        let command = Self::create_command(redis_setting, command, args);
         command.execute()     
+    }
+
+    pub fn create_command<'a>(
+        redis_setting: Arc<std::sync::Mutex<RedisSetting>>,
+        command: &str,
+        args: &'a [&'a str]) -> Box<dyn Command + 'a> {
+        match RedisCommand::from_str(command) {
+            Ok(RedisCommand::Command) => Box::new(Ping{}),
+            Ok(RedisCommand::Ping) => Box::new(Ping{}),
+            Ok(RedisCommand::Echo) => Box::new(Echo{args}),
+            Ok(RedisCommand::Set) => Box::new(Set{args, redis_setting}),
+            Ok(RedisCommand::Get) => Box::new(Get{args}),
+            Ok(RedisCommand::Lpush) => Box::new(Lpush{args}),
+            Ok(RedisCommand::Rpush) => Box::new(Rpush{args}),
+            Ok(RedisCommand::Lrange) => Box::new(Lrange{args}),
+            Ok(RedisCommand::Llen) => Box::new(Llen{args}),
+            Ok(RedisCommand::Lpop) => Box::new(Lpop{args}),
+            Ok(RedisCommand::Blpop) => Box::new(BlPopCommand{args}),
+            Ok(RedisCommand::Type) => Box::new(Type{args}),
+            Ok(RedisCommand::Xadd) => Box::new(Xadd{args}),
+            Ok(RedisCommand::Xrange) => Box::new(Xrange{args}),
+            Ok(RedisCommand::Xread) => Box::new(Xread{args}),
+            Ok(RedisCommand::Incr) => Box::new(Incr{args, redis_setting}),
+            Ok(RedisCommand::Multi) => Box::new(Multi{redis_setting}),
+            Ok(RedisCommand::Exec) => Box::new(Exec{redis_setting}),
+            Err(_) => Box::new(InvalidCommand{}),
+        }
     }
 }
 
-fn create_command<'a>(
-    redis_setting: Arc<std::sync::Mutex<RedisSetting>>,
-    command: &str,
-    args: &'a [&'a str]) -> Box<dyn Command + 'a> {
-    match RedisCommand::from_str(command) {
-        Ok(RedisCommand::Command) => Box::new(Ping{}),
-        Ok(RedisCommand::Ping) => Box::new(Ping{}),
-        Ok(RedisCommand::Echo) => Box::new(Echo{args}),
-        Ok(RedisCommand::Set) => Box::new(Set{args}),
-        Ok(RedisCommand::Get) => Box::new(Get{args}),
-        Ok(RedisCommand::Lpush) => Box::new(Lpush{args}),
-        Ok(RedisCommand::Rpush) => Box::new(Rpush{args}),
-        Ok(RedisCommand::Lrange) => Box::new(Lrange{args}),
-        Ok(RedisCommand::Llen) => Box::new(Llen{args}),
-        Ok(RedisCommand::Lpop) => Box::new(Lpop{args}),
-        Ok(RedisCommand::Blpop) => Box::new(BlPopCommand{args}),
-        Ok(RedisCommand::Type) => Box::new(Type{args}),
-        Ok(RedisCommand::Xadd) => Box::new(Xadd{args}),
-        Ok(RedisCommand::Xrange) => Box::new(Xrange{args}),
-        Ok(RedisCommand::Xread) => Box::new(Xread{args}),
-        Ok(RedisCommand::Incr) => Box::new(Incr{args}),
-        Ok(RedisCommand::Multi) => Box::new(Multi{redis_setting}),
-        Ok(RedisCommand::Exec) => Box::new(Exec{redis_setting}),
-        Err(_) => Box::new(InvalidCommand{}),
-    }
-}
 
 trait Command {
     fn execute (&self) -> Result<String, &'static str>;

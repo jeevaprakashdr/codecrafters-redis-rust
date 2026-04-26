@@ -1,8 +1,13 @@
 use std::process::Command;
 
+pub struct QueuedCommand {
+    pub command_str: String,
+    pub args: Vec<String>,
+}
+
 pub struct RedisSetting {
     is_multi_mode: bool,
-    pub command_queue: Vec<Command>,
+    pub command_queue: Vec<QueuedCommand>,
 }
 
 impl RedisSetting {
