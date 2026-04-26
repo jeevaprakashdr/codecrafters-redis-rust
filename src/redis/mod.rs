@@ -1,6 +1,7 @@
 pub mod resp;
 pub mod db;
 pub mod commands;
+pub mod settings;
 
 mod stream;
 
@@ -17,6 +18,7 @@ use std::sync::{Arc, Mutex};
 use chrono::Utc;
 
 use crate::redis::commands::RedisCommand;
+use crate::redis::settings::RedisSetting;
 
 pub fn handle_connection(
     stream: Result<TcpStream, Error>) {
@@ -24,16 +26,8 @@ pub fn handle_connection(
     match stream {
         Ok(mut stream) => {
             println!("accepted new connection");
+            let redis_setting = Arc::new(Mutex::new(RedisSetting::new()));
             loop {
-                let client_id= stream
-                    .peer_addr()
-                    .map(|op| {
-                        let mut hasher = DefaultHasher::new();
-                        op.ip().hash(&mut hasher);
-                        hasher.finish()
-                    })
-                    .unwrap_or_default();
-
                 let mut buffer = [0; 512];
                 let  bytes_count = stream.read(&mut buffer[..]).unwrap();
                 
@@ -46,7 +40,7 @@ pub fn handle_connection(
                 let cmd = str::from_utf8(&buffer[..bytes_count]).unwrap();
                 if let Ok(parsed_command_array) = resp::parse(cmd) {
                     let command_array = &parsed_command_array.iter().map(|f| f.as_str()).collect::<Vec<_>>();
-                    match RedisCommand::execute(client_id, command_array) {
+                    match RedisCommand::execute(Arc::clone(&redis_setting), command_array) {
                         Ok(response) => {
                             stream.write_all(response.as_bytes()).unwrap();
                         },
