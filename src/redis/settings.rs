@@ -1,10 +1,16 @@
+use std::process::Command;
+
 pub struct RedisSetting {
-    is_multi_mode: bool
+    is_multi_mode: bool,
+    pub command_queue: Vec<Command>,
 }
 
 impl RedisSetting {
     pub fn new() -> Self {
-        Self { is_multi_mode: false }
+        Self { 
+            is_multi_mode: false,
+            command_queue: Vec::new()
+        }
     }
 
     pub fn set_multi_mode(&mut self, multi_mode: bool) {
