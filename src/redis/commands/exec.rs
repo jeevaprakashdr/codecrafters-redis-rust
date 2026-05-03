@@ -45,8 +45,13 @@ impl Command for Exec {
                 command.execute()
 
             })
-            .filter(|result| result.is_ok())
-            .map(|result| result.unwrap())
+            // .filter(|result| result.is_ok())
+            .map(|result| {
+                match result {
+                    Ok(output) => output,
+                    Err(err) => err.to_string(),
+                }
+            })
             .collect::<Vec<_>>();
         
         Ok(create_array(&command_outputs.iter().map(|r| r.as_str()).collect::<Vec<_>>().as_slice()))
