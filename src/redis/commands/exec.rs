@@ -8,14 +8,14 @@ pub struct Exec {
 
 impl Command for Exec {
     fn execute (&self) -> Result<String, &'static str> {
-
-        if let setting = self.redis_setting.lock().unwrap() && !setting.get_multi_mode(){
+        
+        let setting = self.redis_setting.lock().unwrap();
+        if !setting.get_multi_mode(){
             return Ok("-ERR EXEC without MULTI\r\n".to_string())
         }
 
-        if let mut setting = self.redis_setting.lock().unwrap()
-            && setting.get_multi_mode() 
-            && setting.command_queue.is_empty() {
+        let mut setting = self.redis_setting.lock().unwrap();
+        if setting.get_multi_mode() && setting.command_queue.is_empty() {
             setting.set_multi_mode(false);
             return  Ok(create_empty_array())
         }
