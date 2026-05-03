@@ -8,9 +8,8 @@ pub struct Exec {
 
 impl Command for Exec {
     fn execute (&self) -> Result<String, &'static str> {
-        
-        let setting = self.redis_setting.lock().unwrap();
-        if !setting.get_multi_mode(){
+
+        if let setting = self.redis_setting.lock().unwrap() && !setting.get_multi_mode(){
             return Ok("-ERR EXEC without MULTI\r\n".to_string())
         }
 
