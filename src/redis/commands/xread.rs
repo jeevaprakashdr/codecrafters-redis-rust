@@ -5,7 +5,7 @@ use std::{thread, time};
 use crate::redis::commands::Command;
 use crate::redis::db::{self, DB};
 use crate::redis::resp::{
-    create_array, create_bulk_string, create_empty_array, create_null_array, create_resp_array,
+    create_array_bulk_string, create_bulk_string, create_empty_array, create_null_array, create_resp_array,
 };
 use crate::redis::stream::{Stream, StreamEntryId};
 
@@ -123,7 +123,7 @@ impl<'a> Xread<'a> {
         }
 
         let bs: String = create_bulk_string(stream.id.to_string().as_str());
-        let entry_arr = create_array(
+        let entry_arr = create_array_bulk_string(
             &stream
                 .entries
                 .iter()

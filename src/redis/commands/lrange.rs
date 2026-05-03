@@ -46,7 +46,7 @@ fn execute_lrange(args: &[&str]) -> Result<String, &'static str> {
             .map(|ele| ele.as_str())
             .collect::<Vec<_>>();
 
-        return Ok(resp::create_array(&result))
+        return Ok(resp::create_array_bulk_string(&result))
     }
     
     Ok(resp::create_empty_array())

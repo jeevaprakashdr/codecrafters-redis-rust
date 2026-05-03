@@ -1,5 +1,6 @@
 use std::process::Command;
 
+#[derive(Debug)]
 pub struct QueuedCommand {
     pub command_str: String,
     pub args: Vec<String>,

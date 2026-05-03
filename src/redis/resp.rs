@@ -104,6 +104,11 @@ pub fn parse(input:&str) -> Result<Vec<String>, &'static str> {
 }
 
 pub fn create_array(collection: &[&str]) -> String {
+    let collection_string = collection.iter().map(|r| r.to_string()).collect::<Vec<_>>().join("");
+    format!("*{}\r\n{}", collection.iter().len(), collection_string)
+}
+
+pub fn create_array_bulk_string(collection: &[&str]) -> String {
     let collection_string = collection.iter().map(|r| create_bulk_string(r)).collect::<Vec<_>>().join("");
     format!("*{}\r\n{}", collection.iter().len(), collection_string)
 }
@@ -140,7 +145,7 @@ pub fn create_resp_array(val: &[&str]) -> String {
 mod tests {
     use crate::redis::resp::{
         create_null_array,
-        create_array,
+        create_array_bulk_string,
         create_empty_array,
         create_simple_integer,
         create_simple_string, 
@@ -223,7 +228,7 @@ mod tests {
         ];
         
         for (arr, expected) in input {
-            let actual = create_array(arr);
+            let actual = create_array_bulk_string(arr);
     
             assert_eq!(expected.to_string(), actual);
         }

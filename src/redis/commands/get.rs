@@ -3,16 +3,29 @@ use std::sync::Arc;
 use chrono::{DateTime, Utc};
 
 use crate::redis::commands::Command;
-use crate::redis::resp;
+use crate::redis::resp::{self, create_simple_string};
 use crate::redis::db::{self, DB};
+use crate::redis::settings::{QueuedCommand, RedisSetting};
 
 pub struct Get<'a> {
-    pub args: &'a [&'a str]
+    pub args: &'a [&'a str],
+    pub redis_setting: Arc<std::sync::Mutex<RedisSetting>>
 }
 
 impl<'a> Command for Get<'a> {
     fn execute (&self) -> Result<String, &'static str> {
-       execute_get(self.args)
+        let mut setting = self.redis_setting.lock().unwrap();
+        if setting.get_multi_mode() {
+            let command = QueuedCommand {
+                command_str: "GET".to_string(),
+                args: self.args.iter().map(|f| f.to_string()).collect::<Vec<String>>()
+            };
+            
+            setting.command_queue.push(command);
+            return Ok(create_simple_string("QUEUED"))
+        }
+        
+        execute_get(self.args)
     }
 }
 

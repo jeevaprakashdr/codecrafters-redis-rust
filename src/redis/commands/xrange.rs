@@ -1,6 +1,6 @@
 use std::{str::FromStr, sync::Arc};
 
-use crate::redis::{commands::Command, db::{self, DB}, resp::{create_array, create_bulk_string, create_empty_array}, stream::{Stream, StreamEntryId}};
+use crate::redis::{commands::Command, db::{self, DB}, resp::{create_array_bulk_string, create_bulk_string, create_empty_array}, stream::{Stream, StreamEntryId}};
 
 pub struct Xrange<'a> {
     pub args: &'a [&'a str]
@@ -27,7 +27,7 @@ impl<'a> Command for Xrange<'a> {
                     .iter()
                     .map(|stream| {
                         let bs = create_bulk_string (stream.id.to_string().as_str());
-                        let arr = create_array(&stream.entries.iter().map(|val| val.as_str()).collect::<Vec<_>>());
+                        let arr = create_array_bulk_string(&stream.entries.iter().map(|val| val.as_str()).collect::<Vec<_>>());
                         vec![bs, arr]
                     })
                     .map(|streams|  format!("*{}\r\n{}", streams.len(), streams.join("")))

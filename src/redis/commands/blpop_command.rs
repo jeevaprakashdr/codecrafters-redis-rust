@@ -1,4 +1,4 @@
-use crate::redis::{commands::Command, db::{self, DB}, resp::{create_array, create_null_array}};
+use crate::redis::{commands::Command, db::{self, DB}, resp::{create_array_bulk_string, create_null_array}};
 use std::{fmt::Display, str::FromStr, sync::Arc, thread, time::Duration};
 
 pub struct BlPopCommand<'a> {
@@ -21,7 +21,7 @@ fn execute_blpop(args: &[&str]) -> Result<String, &'static str> {
 
     loop {
         if let Some(popped) = blpop(args) {
-            return Ok(create_array(&[args[0], popped.as_str()]))
+            return Ok(create_array_bulk_string(&[args[0], popped.as_str()]))
         }
 
         if timeout_expired {

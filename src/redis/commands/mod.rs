@@ -40,7 +40,7 @@ use crate::redis::commands::r#type::Type;
 use crate::redis::commands::xadd::Xadd;
 use crate::redis::commands::xrange::Xrange;
 use crate::redis::commands::xread::Xread;
-use crate::redis::resp::{self, create_array, create_bulk_string, create_empty_array, create_null_array, create_null_bulk_string, create_simple_integer};
+use crate::redis::resp::{self, create_array_bulk_string, create_bulk_string, create_empty_array, create_null_array, create_null_bulk_string, create_simple_integer};
 use crate::redis::db::{self, DB, Value};
 use crate::redis::settings::RedisSetting;
 
@@ -103,7 +103,7 @@ impl RedisCommand {
         command.execute()     
     }
 
-    pub fn create_command<'a>(
+    fn create_command<'a>(
         redis_setting: Arc<std::sync::Mutex<RedisSetting>>,
         command: &str,
         args: &'a [&'a str]) -> Box<dyn Command + 'a> {
@@ -112,7 +112,7 @@ impl RedisCommand {
             Ok(RedisCommand::Ping) => Box::new(Ping{}),
             Ok(RedisCommand::Echo) => Box::new(Echo{args}),
             Ok(RedisCommand::Set) => Box::new(Set{args, redis_setting}),
-            Ok(RedisCommand::Get) => Box::new(Get{args}),
+            Ok(RedisCommand::Get) => Box::new(Get{args, redis_setting}),
             Ok(RedisCommand::Lpush) => Box::new(Lpush{args}),
             Ok(RedisCommand::Rpush) => Box::new(Rpush{args}),
             Ok(RedisCommand::Lrange) => Box::new(Lrange{args}),

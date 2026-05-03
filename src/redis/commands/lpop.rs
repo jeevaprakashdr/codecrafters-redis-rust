@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use std::str::FromStr;
 
-use crate::redis::resp::{create_array, create_bulk_string, create_null_bulk_string};
+use crate::redis::resp::{create_array_bulk_string, create_bulk_string, create_null_bulk_string};
 use crate::redis::db::{self, DB};
 use crate::redis::commands::Command;
 pub struct Lpop<'a> {
@@ -34,7 +34,7 @@ fn execute_lpop(args: &[&str]) -> Result<String, &'static str> {
             if current[0..number_of_elements].len() == 1 {
                 Ok(create_bulk_string(current[0..number_of_elements].first().unwrap().as_str()))
             } else {
-                Ok(create_array(&current[0..number_of_elements].iter().map(|s|s.as_str()).collect::<Vec<_>>()))
+                Ok(create_array_bulk_string(&current[0..number_of_elements].iter().map(|s|s.as_str()).collect::<Vec<_>>()))
             }
         }
         None => Ok(create_null_bulk_string())
