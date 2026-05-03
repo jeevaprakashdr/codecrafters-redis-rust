@@ -14,8 +14,9 @@ impl Command for Exec {
             return Ok("-ERR EXEC without MULTI\r\n".to_string())
         }
 
-        let mut setting = self.redis_setting.lock().unwrap();
-        if setting.get_multi_mode() && setting.command_queue.is_empty() {
+        if let mut setting = self.redis_setting.lock().unwrap()
+            && setting.get_multi_mode() 
+            && setting.command_queue.is_empty() {
             setting.set_multi_mode(false);
             return  Ok(create_empty_array())
         }
