@@ -13,12 +13,14 @@ impl Command for Exec {
             return Ok("-ERR EXEC without MULTI\r\n".to_string())
         }
 
-        if let mut setting = self.redis_setting.lock().unwrap() && setting.get_multi_mode() && setting.command_queue.is_empty(){
+        if let mut setting = self.redis_setting.lock().unwrap()
+            && setting.get_multi_mode() 
+            && setting.command_queue.is_empty() {
             setting.set_multi_mode(false);
             return  Ok(create_empty_array())
         }
         
-        let q_commands= {
+        let queued_commands= {
             let mut setting = self.redis_setting.lock().unwrap();
             setting.set_multi_mode(false);
             
@@ -27,7 +29,7 @@ impl Command for Exec {
             queues
         };
 
-        let output: Vec<String> = q_commands
+        let command_outputs: Vec<String> = queued_commands
             .iter()
             .map(|c| {
                 let args: Vec<&str> = c.args
@@ -48,6 +50,6 @@ impl Command for Exec {
             .map(|result| result.unwrap())
             .collect::<Vec<_>>();
         
-        Ok(create_array(&output.iter().map(|r| r.as_str()).collect::<Vec<_>>().as_slice()))
+        Ok(create_array(&command_outputs.iter().map(|r| r.as_str()).collect::<Vec<_>>().as_slice()))
     }
 }
