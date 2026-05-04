@@ -99,11 +99,11 @@ impl FromStr for RedisCommand {
 }
 
 impl RedisCommand {
-    pub fn execute(redis_setting: Arc<std::sync::Mutex<RedisSetting>>, command_array: &[&str])
+    pub fn execute(redis_setting: Arc<std::sync::Mutex<RedisSetting>>, command_array: &[String])
         -> Result<String, &'static str> {
-        let command = command_array[0];
-        let args = &command_array[1..];
-        let command = Self::create_command(redis_setting, command, args);
+        let command = command_array[0].as_str();
+        let args: Vec<&str> = command_array[1..].iter().map(String::as_str).collect();
+        let command = Self::create_command(redis_setting, command, &args);
         command.execute()     
     }
 

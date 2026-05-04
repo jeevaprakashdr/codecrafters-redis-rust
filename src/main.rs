@@ -1,9 +1,7 @@
 #![allow(unused_imports)]
 mod redis;
 
-use std::{collections::HashMap, io::{Read, Write}, net::TcpListener, ops::{Add, Index}, str, string, sync::{Arc, Mutex}, thread};
-use bytes::buf;
-use chrono::Utc;
+use std::{net::TcpListener, sync::Arc, thread};
 
 use crate::redis::db::DB;
 use crate::redis::handle_connection;
