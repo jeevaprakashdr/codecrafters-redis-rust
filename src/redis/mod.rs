@@ -18,7 +18,7 @@ pub fn handle_connection(mut stream: TcpStream) {
     let redis_setting = Arc::new(Mutex::new(RedisSetting::new()));
     loop {
         let cmd = read_command_string(&mut stream);
-        if let Ok(parsed_command_array) = resp::parse(cmd.as_str()) {
+        if let Ok(parsed_command_array) = resp::parse(cmd) {
             let response = RedisCommand::execute(Arc::clone(&redis_setting), &parsed_command_array)
                 .inspect_err(|e| println!("{}", e))
                 .unwrap_or_else(|e| e.to_string());

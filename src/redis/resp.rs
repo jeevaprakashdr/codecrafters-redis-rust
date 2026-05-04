@@ -1,4 +1,4 @@
-use std::{fmt::format, io::Error, mem};
+use std::mem;
 
 enum State {
     ArraySize,
@@ -7,7 +7,7 @@ enum State {
     BulkString,
 }
 
-pub fn parse(input:&str) -> Result<Vec<String>, &'static str> {
+pub fn parse(input:String) -> Result<Vec<String>, &'static str> {
     let mut tokens: Vec<String> = Vec::new();
     let mut token = String::new();
     let mut chars = input.chars();
@@ -178,7 +178,7 @@ mod tests {
             ];
         
         for (cmd, expected) in inputs {
-            let result = parse(cmd);
+            let result = parse(cmd.to_string());
         
             assert!(result.is_ok(), "Cmd processing FAILED");
             let response = result.unwrap();
@@ -234,4 +234,3 @@ mod tests {
         }
     }
 }
-
