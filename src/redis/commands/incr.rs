@@ -1,7 +1,10 @@
 use std::sync::Arc;
 use std::str::FromStr;
 
-use crate::redis::{commands::Command, db::{self, DB}, resp::{create_empty_array, create_simple_integer, create_simple_string}, settings::{QueuedCommand, RedisSetting}};
+use crate::redis::db::{self, DB};
+use crate::redis::settings::{QueuedCommand, RedisSetting};
+use crate::redis::resp::{create_simple_integer, create_simple_string};
+use crate::redis::commands::Command;
 
 pub struct Incr<'a> {
     pub args: &'a [&'a str],

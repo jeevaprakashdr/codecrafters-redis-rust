@@ -1,5 +1,5 @@
 use crate::redis::{commands::Command, db::{self, DB}, resp::{create_array_bulk_string, create_null_array}};
-use std::{fmt::Display, str::FromStr, sync::Arc, thread, time::Duration};
+use std::{str::FromStr, sync::Arc, thread, time::Duration};
 
 pub struct BlPopCommand<'a> {
     pub args: &'a [&'a str]

@@ -5,7 +5,6 @@ use chrono::Utc;
 use crate::redis::resp;
 use crate::redis::db::{self, DB};
 use crate::redis::commands::Command;
-use crate::redis::stream::Stream;
 
 pub struct Rpush<'a> {
     pub args: &'a [&'a str]

@@ -3,11 +3,10 @@ use std::sync::Arc;
 
 use chrono::Utc;
 
-use crate::redis::commands::{Command, RedisCommand};
+use crate::redis::commands::Command;
 use crate::redis::db::{self, DB};
 use crate::redis::resp::{self, create_simple_string};
 use crate::redis::settings::{QueuedCommand, RedisSetting};
-use crate::redis::stream::Stream;
 
 pub struct Set<'a> {
     pub args: &'a [&'a str],

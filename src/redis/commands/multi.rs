@@ -1,6 +1,8 @@
 use std::sync::Arc;
 
-use crate::redis::{commands::Command, db::{self, DB, Value}, resp::create_simple_string, settings::RedisSetting};
+use crate::redis::settings::RedisSetting;
+use crate::redis::resp::create_simple_string;
+use crate::redis::commands::Command;
 
 pub struct Multi {
     pub redis_setting: Arc<std::sync::Mutex<RedisSetting>>,

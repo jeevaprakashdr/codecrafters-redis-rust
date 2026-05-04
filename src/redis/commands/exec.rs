@@ -1,6 +1,8 @@
 use std::sync::Arc;
 
-use crate::redis::{commands::{self, Command, RedisCommand}, db::{self, DB}, resp::{create_array, create_array_bulk_string, create_empty_array, create_simple_string}, settings::RedisSetting};
+use crate::redis::settings::RedisSetting;
+use crate::redis::resp::{create_array, create_empty_array};
+use crate::redis::commands::{Command, RedisCommand};
 
 pub struct Exec {
     pub redis_setting: Arc<std::sync::Mutex<RedisSetting>>,

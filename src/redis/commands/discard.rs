@@ -1,6 +1,8 @@
 use std::sync::Arc;
 
-use crate::redis::{commands::Command, resp::create_simple_string, settings::RedisSetting};
+use crate::redis::settings::RedisSetting;
+use crate::redis::resp::create_simple_string;
+use crate::redis::commands::Command;
 
 pub struct Discard {
     pub redis_setting: Arc<std::sync::Mutex<RedisSetting>>,

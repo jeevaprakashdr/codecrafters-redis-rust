@@ -17,10 +17,8 @@ mod multi;
 mod exec;
 mod discard;
 
-use core::num;
-use std::thread;
-use std::time::Duration;
-use std::{fmt::Display, str::FromStr, sync::Arc};
+use std::sync::Arc;
+use std::str::FromStr;
 use chrono::Utc;
 
 use crate::redis::commands;
