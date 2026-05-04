@@ -15,8 +15,13 @@ fn main() {
     let listener = TcpListener::bind("127.0.0.1:6379").unwrap();
     
     for stream in listener.incoming() {
-        thread::spawn(move || {
-            handle_connection(stream);
-        });
+        match stream {
+            Ok(tcp_stream) => {
+                thread::spawn(move || {
+                    handle_connection(tcp_stream);
+                });
+            },
+            Err(e) => println!("error: {}", e),
+        }
     }
 }
