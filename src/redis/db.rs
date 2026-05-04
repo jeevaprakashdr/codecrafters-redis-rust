@@ -1,8 +1,7 @@
 use std::{collections::HashMap, sync::{Arc, LazyLock, Mutex}};
-
 use chrono::{DateTime, Utc};
 
-use crate::redis::stream::{Stream, StreamEntryId};
+use crate::redis::stream::Stream;
 
 #[derive(Debug)]
 pub struct Value {
