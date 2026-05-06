@@ -16,6 +16,7 @@ mod incr;
 mod multi;
 mod exec;
 mod discard;
+mod info;
 
 use std::sync::Arc;
 use std::str::FromStr;
@@ -28,6 +29,7 @@ use crate::redis::commands::echo::Echo;
 use crate::redis::commands::exec::Exec;
 use crate::redis::commands::get::Get;
 use crate::redis::commands::incr::Incr;
+use crate::redis::commands::info::Info;
 use crate::redis::commands::llen::Llen;
 use crate::redis::commands::lpop::Lpop;
 use crate::redis::commands::lpush::Lpush;
@@ -65,6 +67,7 @@ pub enum RedisCommand {
     Multi,
     Exec,
     Discard,
+    Info,
 }
 
 impl FromStr for RedisCommand {
@@ -91,6 +94,7 @@ impl FromStr for RedisCommand {
             "multi" => Ok(RedisCommand::Multi),
             "exec" => Ok(RedisCommand::Exec),
             "discard" => Ok(RedisCommand::Discard),
+            "info" => Ok(RedisCommand::Info),
             _ => Err(format!("unknown command: {}", s))
         }
     }
@@ -129,6 +133,7 @@ impl RedisCommand {
             Ok(RedisCommand::Multi) => Box::new(Multi{redis_setting}),
             Ok(RedisCommand::Exec) => Box::new(Exec{redis_setting}),
             Ok(RedisCommand::Discard) => Box::new(Discard{redis_setting}),
+            Ok(RedisCommand::Info) => Box::new(Info{}),
             Err(_) => Box::new(InvalidCommand{}),
         }
     }
