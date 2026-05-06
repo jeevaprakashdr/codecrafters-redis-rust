@@ -1,12 +1,15 @@
 #![allow(unused_imports)]
 mod redis;
 
+use std::env;
 use std::{net::TcpListener, sync::Arc, thread};
 
 use crate::redis::db::DB;
 use crate::redis::handle_connection;
 
 fn main() {
+    let args: Vec<String> = env::args().collect();
+    println!("{:?}", args);
     let _ = Arc::clone(&DB);
     println!("Logs from your program will appear here!");
 
