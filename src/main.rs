@@ -1,19 +1,21 @@
 #![allow(unused_imports)]
 mod redis;
 
-use std::env;
 use std::{net::TcpListener, sync::Arc, thread};
+use clap::Parser;
 
 use crate::redis::db::DB;
 use crate::redis::handle_connection;
+use crate::redis::init::Arguments;
 
 fn main() {
-    let args: Vec<String> = env::args().collect();
-    println!("{:?}", args);
+    let arguments = Arguments::parse();
+
     let _ = Arc::clone(&DB);
     println!("Logs from your program will appear here!");
 
-    let listener = TcpListener::bind("127.0.0.1:6379").unwrap();
+    let addr = format!("127.0.0.1:{}", arguments.port);
+    let listener = TcpListener::bind(addr).unwrap();
     
     for stream in listener.incoming() {
         match stream {
