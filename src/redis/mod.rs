@@ -1,4 +1,4 @@
-pub mod init;
+pub mod cli;
 pub mod resp;
 pub mod db;
 pub mod commands;

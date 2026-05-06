@@ -6,7 +6,7 @@ use clap::Parser;
 
 use crate::redis::db::DB;
 use crate::redis::handle_connection;
-use crate::redis::init::Arguments;
+use crate::redis::cli::Arguments;
 
 fn main() {
     let arguments = Arguments::parse();
