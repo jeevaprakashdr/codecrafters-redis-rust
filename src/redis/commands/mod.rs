@@ -16,7 +16,7 @@ mod incr;
 mod multi;
 mod exec;
 mod discard;
-mod info;
+pub mod info;
 
 use std::sync::Arc;
 use std::str::FromStr;
@@ -133,7 +133,7 @@ impl RedisCommand {
             Ok(RedisCommand::Multi) => Box::new(Multi{redis_setting}),
             Ok(RedisCommand::Exec) => Box::new(Exec{redis_setting}),
             Ok(RedisCommand::Discard) => Box::new(Discard{redis_setting}),
-            Ok(RedisCommand::Info) => Box::new(Info{}),
+            Ok(RedisCommand::Info) => Box::new(Info{args}),
             Err(_) => Box::new(InvalidCommand{}),
         }
     }

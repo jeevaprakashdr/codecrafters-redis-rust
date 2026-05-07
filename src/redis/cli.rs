@@ -1,6 +1,6 @@
 use clap::Parser;
 
-#[derive(Parser)]
+#[derive(Parser, Clone)]
 pub struct Arguments {
     #[arg(short, long, default_value = "6379")]
     pub port: String,

@@ -20,8 +20,9 @@ fn main() {
     for stream in listener.incoming() {
         match stream {
             Ok(tcp_stream) => {
+                let arguments = arguments.clone();
                 thread::spawn(move || {
-                    handle_connection(tcp_stream);
+                    handle_connection(tcp_stream, arguments);
                 });
             },
             Err(e) => println!("error: {}", e),
