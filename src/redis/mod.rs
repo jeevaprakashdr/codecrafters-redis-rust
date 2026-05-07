@@ -34,15 +34,22 @@ pub fn handle_connection(mut stream: TcpStream, arguments: Arguments) {
 }
 
 fn init_server_info(arguments: Arguments) {
-    println!("Saving server information -- begin");
     let in_memory_db = Arc::clone(&db::DB);
     let mut db: std::sync::MutexGuard<'_, db::InMemoryDb> = in_memory_db.lock().unwrap();
     if arguments.replicaof.is_some() {
-        db.insert("ROLE", Value::with_str("role:slave".to_string()));
+        db.insert("INFO", Value::with_str("role:slave".to_string()));
     } else {
-        db.insert("ROLE", Value::with_str("role:master".to_string()));
+        let info = vec![
+                ReplicationInfo::with(ReplicationInfoKey::Role, "master".to_string()),
+                ReplicationInfo::with(ReplicationInfoKey::MasterReplid, "8371b4fb1155b71f4a04d3e1bc3e18c4a990aeeb".to_string()),
+                ReplicationInfo::with(ReplicationInfoKey::MasterReplOffset, "0".to_string())
+            ]
+            .iter()
+            .map(|v|v.to_string())
+            .collect::<Vec<_>>()
+            .join("");
+        db.insert("INFO", Value::with_str(info));
     }
-    println!("Saving server information -- completed");
 }
 
 fn read_command_string(stream: &mut TcpStream) -> String {
@@ -52,4 +59,42 @@ fn read_command_string(stream: &mut TcpStream) -> String {
 
     let cmd: &str = str::from_utf8(&buffer[..bytes_count]).unwrap();
     cmd.to_string()
+}
+
+#[derive(Debug)]
+enum ReplicationInfoKey {
+    Role,
+    MasterReplid,
+    MasterReplOffset,
+}
+
+impl std::fmt::Display for ReplicationInfoKey {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let key = match self {
+            ReplicationInfoKey::Role => "role",
+            ReplicationInfoKey::MasterReplid => "master_replid",
+            ReplicationInfoKey::MasterReplOffset => "master_repl_offset",
+        };
+        write!(f, "{}", key)
+    }
+}
+
+struct ReplicationInfo {
+    key: ReplicationInfoKey,
+    value: String
+}
+
+impl std::fmt::Display for ReplicationInfo {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}:{}", self.key.to_string(), self.value)
+    }
+}
+
+impl ReplicationInfo {
+    fn with(key: ReplicationInfoKey, value: String) -> ReplicationInfo {
+        ReplicationInfo {
+            key,
+            value
+        }
+    }
 }

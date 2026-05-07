@@ -13,8 +13,8 @@ impl<'a> Command for Info<'a> {
         let in_memory_db = Arc::clone(&DB);
         let db: std::sync::MutexGuard<'_, db::InMemoryDb> = in_memory_db.lock().unwrap();
         
-        if self.args.contains(  &"replication") {
-            let role = db.get("ROLE")
+        if self.args.contains(&"replication") {
+            let role = db.get("INFO")
             .map(|val| val.str_val() )
             .unwrap_or("role:slave");
             
