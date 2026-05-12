@@ -16,7 +16,7 @@ impl Command for Rpush {
     }
 }
 
-fn execute_rpush(args: &Vec<String>) -> Result<String, &'static str> {
+fn execute_rpush(args: &[String]) -> Result<String, &'static str> {
     let in_memory_db = Arc::clone(&DB);
     let mut db: std::sync::MutexGuard<'_, db::InMemoryDb> = in_memory_db.lock().unwrap();
     match db.get_mut(args[0].as_str()) {

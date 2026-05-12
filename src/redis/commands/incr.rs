@@ -3,7 +3,6 @@ use std::str::FromStr;
 
 use crate::redis::db::{self, DB};
 use crate::redis::server::ServerContext;
-use crate::redis::settings::{QueuedCommand, RedisSetting};
 use crate::redis::resp::{create_simple_integer, create_simple_string};
 use crate::redis::commands::{Command, CommandHandlerContext, QueueContent};
 

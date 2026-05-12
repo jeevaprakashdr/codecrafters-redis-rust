@@ -4,7 +4,6 @@ mod echo;
 mod exec;
 mod get;
 mod incr;
-pub mod info;
 mod llen;
 mod lpop;
 mod lpush;
@@ -17,6 +16,7 @@ mod r#type;
 mod xadd;
 mod xrange;
 mod xread;
+mod info;
 
 use chrono::Utc;
 use std::collections::VecDeque;
@@ -51,7 +51,6 @@ use crate::redis::resp::{
     create_null_bulk_string, create_simple_integer,
 };
 use crate::redis::server::ServerContext;
-use crate::redis::settings::RedisSetting;
 
 #[derive(Debug, PartialEq)]
 pub enum RedisCommand {
@@ -108,12 +107,17 @@ impl FromStr for RedisCommand {
 }
 
 impl RedisCommand {
-    fn create<'a>(cmd_str: String, args: Vec<String>, context: &'a mut CommandHandlerContext) -> Box<dyn Command + 'a> {
-        let redis_setting = Arc::new(std::sync::Mutex::new(RedisSetting::new()));
+    fn create<'a>(
+        cmd_str: String, 
+        args: Vec<String>, 
+        context: &'a mut CommandHandlerContext,
+        server_context: Arc<std::sync::Mutex<ServerContext>>
+    ) 
+    -> Box<dyn Command + 'a> {
         match RedisCommand::from_str(cmd_str.as_str()) {
             Ok(RedisCommand::Command) => Box::new(Ping {}),
             Ok(RedisCommand::Ping) => Box::new(Ping {}),
-            Ok(RedisCommand::Echo) => Box::new(Echo { args: args }),
+            Ok(RedisCommand::Echo) => Box::new(Echo { args }),
             Ok(RedisCommand::Set) => Box::new(Set {
                 context,
                 args,
@@ -137,9 +141,9 @@ impl RedisCommand {
                 args,
             }),
             Ok(RedisCommand::Multi) => Box::new(Multi { context }),
-            Ok(RedisCommand::Exec) => Box::new(Exec { context }),
+            Ok(RedisCommand::Exec) => Box::new(Exec { server_context, context }),
             Ok(RedisCommand::Discard) => Box::new(Discard { context, }),
-            Ok(RedisCommand::Info) => Box::new(Info { args }),
+            Ok(RedisCommand::Info) => Box::new(Info { server_context }),
             Err(_) => Box::new(InvalidCommand {}),
         }
     }
@@ -208,8 +212,8 @@ impl<'a> CommandHandler<'a> {
         }
     }
 
-    pub(crate) fn handle(&mut self, mut stream: &TcpStream) {
-        let mut command = RedisCommand::create(self.cmd_str.clone(), self.args.clone(), &mut self.context);
+    pub(crate) fn handle(&mut self, mut stream: &TcpStream, server_context: Arc<std::sync::Mutex<ServerContext>>) {
+        let mut command = RedisCommand::create(self.cmd_str.clone(), self.args.clone(), self.context, server_context);
         let result = command.execute()
             .inspect_err(|err| eprintln!("{}", err))
             .unwrap_or_else(|e| e.to_string());

@@ -8,6 +8,7 @@
         "Lrange",
         "lseid",
         "replicaof",
+        "replid",
         "rpush",
         "seqno",
         "XADD",

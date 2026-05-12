@@ -8,7 +8,6 @@ use crate::redis::commands::{Command, CommandHandlerContext, QueueContent};
 use crate::redis::db::{self, DB};
 use crate::redis::resp::{self, create_simple_string};
 use crate::redis::server::ServerContext;
-use crate::redis::settings::{QueuedCommand, RedisSetting};
 
 pub struct Set<'a> {
     pub context: &'a mut CommandHandlerContext,
@@ -42,7 +41,7 @@ fn execute_set(args: &[String]) -> Result<String, &'static str> {
     let val = args[1].to_string();
 
     let mut value = db::Value::with_str(val);
-    if let Some(px_index) = args.iter().position(|s| s == &"PX") {
+    if let Some(px_index) = args.iter().position(|s| s == "PX") {
         let milliseconds=  i64::from_str(args[px_index + 1].as_str()).unwrap_or_default();
         value.set_expire_at(Utc::now() + chrono::Duration::milliseconds(milliseconds));
     }

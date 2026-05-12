@@ -1,11 +1,11 @@
 use std::sync::Arc;
 
 use crate::redis::server::ServerContext;
-use crate::redis::settings::RedisSetting;
 use crate::redis::resp::{create_array, create_empty_array};
 use crate::redis::commands::{Command, CommandHandlerContext, QueueContent, RedisCommand};
 
 pub struct Exec<'a> {
+    pub server_context: Arc<std::sync::Mutex<ServerContext>>,
     pub context: &'a mut CommandHandlerContext,
 }
 
@@ -31,7 +31,8 @@ impl<'a> Command for Exec<'a> {
                 let mut command = RedisCommand::create(
                     content.command_str.clone(), 
                     content.args.clone(),
-                    self.context, 
+                    self.context,
+                    self.server_context.clone()
                 );
 
                 command.execute()
@@ -45,6 +46,6 @@ impl<'a> Command for Exec<'a> {
             })
             .collect::<Vec<_>>();
         
-        Ok(create_array(&command_outputs.iter().map(|r| r.as_str()).collect::<Vec<_>>().as_slice()))
+        Ok(create_array(command_outputs.iter().map(|r| r.as_str()).collect::<Vec<_>>().as_slice()))
     }
 }

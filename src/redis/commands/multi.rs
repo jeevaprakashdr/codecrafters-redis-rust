@@ -1,7 +1,6 @@
 use std::sync::Arc;
 
 use crate::redis::server::ServerContext;
-use crate::redis::settings::RedisSetting;
 use crate::redis::resp::create_simple_string;
 use crate::redis::commands::{Command, CommandHandlerContext};
 

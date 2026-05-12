@@ -1,11 +1,23 @@
-use std::{clone, collections::VecDeque, default, io::{self, Read}, net::{TcpListener, TcpStream}, sync::Arc, task::Context, thread};
-
+use std::collections::VecDeque;
+use std::thread;
+use std::sync::Arc;
+use std::net::{TcpListener, TcpStream};
+use std::io::{self, Read};
+use std::fmt::Display;
 use clap::Parser;
 
-use crate::redis::{cli::ServerArguments, commands::{CommandHandler, CommandHandlerContext, RedisCommand}, resp, settings::QueuedCommand};
+use crate::redis::commands::{CommandHandler, CommandHandlerContext};
+use crate::redis::resp;
+use crate::redis::cli::ServerArguments;
 
 pub(crate) struct ServerContext {
     replication_info: ReplicationInfo,
+}
+
+impl ServerContext {
+    pub(crate) fn get_role_info(&self) -> Vec<String> {
+        self.replication_info.get_role_info()
+    }
 }
 
 pub(crate) struct Server<'a> {
@@ -35,6 +47,7 @@ impl<'a> Server<'a> {
 
     pub(crate) fn handler_stream(&self, mut stream: TcpStream) {
         let mut context =  CommandHandlerContext::new(false, VecDeque::new());
+        let server_context = self.context.clone();
         thread::spawn(move || {
             loop {
                 let read_result = read_command_string(&mut stream);
@@ -50,23 +63,29 @@ impl<'a> Server<'a> {
 
                 if let Ok((cmd_str, args)) = resp::parse_with(cmd_str) {
                     let mut command_handler = CommandHandler::new(cmd_str, args, &mut context);
-                    command_handler.handle(&mut stream)
+                    command_handler.handle(&stream, server_context.clone())
                 }
             }
         });
     }
-    
-    fn address(&self) -> String {
-        format!("{}:{}", self.host, self.port)
-    }
-    
 }
 
-#[derive(Default, Clone)]
+#[derive(Default, Clone, PartialEq)]
 enum ReplicationRole {
     #[default]
     Master,
     Slave(String)
+}
+
+impl Display for ReplicationRole {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let role = match self {
+            ReplicationRole::Master => "master",
+            ReplicationRole::Slave(_) => "slave",
+        };
+
+         write!(f, "role:{}", role)
+    }
 }
 
 #[derive(Clone)]
@@ -80,6 +99,15 @@ impl ReplicationInfo {
     fn new(role: ReplicationRole, replication_id: Option<String>, replication_offset: Option<u16>) -> Self {
         Self { role, replication_id, replication_offset }
     }
+    
+    fn get_role_info(&self) -> Vec<String> {
+        let mut info:Vec<String> = Vec::new();
+        info.push(self.role.to_string());
+        info.push(format!("master_replid:{}", self.replication_id.clone().map_or("".to_string(), |f| f)));
+        info.push(format!("master_repl_offset:{}", self.replication_offset.map_or(0, |f| f)));
+
+        info
+    }
 }
 
 fn get_repl_info(args: &ServerArguments) -> ReplicationInfo {
@@ -87,11 +115,14 @@ fn get_repl_info(args: &ServerArguments) -> ReplicationInfo {
         Some(host) => {
             ReplicationInfo::new(
                 ReplicationRole::Slave(host.to_string()), 
-                Some("8371b4fb1155b71f4a04d3e1bc3e18c4a990aeeb".to_string()),
-                Some(0),
+                None,
+                None,
             )
         }
-        None => ReplicationInfo::new(ReplicationRole::Master,None,  None ),
+        None => ReplicationInfo::new(
+            ReplicationRole::Master,
+            Some("8371b4fb1155b71f4a04d3e1bc3e18c4a990aeeb".to_string()),  
+            Some(0)),
     }
 }
 

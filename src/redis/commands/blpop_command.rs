@@ -11,7 +11,7 @@ impl Command for BlPopCommand {
     }
 }
 
-fn execute_blpop(args: &Vec<String>) -> Result<String, &'static str> { 
+fn execute_blpop(args: &[String]) -> Result<String, &'static str> { 
     let timeout = args
                 .get(1)
                 .map(|f |f64::from_str(f).unwrap_or(0.0))
@@ -35,7 +35,7 @@ fn execute_blpop(args: &Vec<String>) -> Result<String, &'static str> {
     }    
 }
 
-fn blpop(args: &Vec<String>) -> Option<String> {
+fn blpop(args: &[String]) -> Option<String> {
     let in_memory_db = Arc::clone(&DB);
     let mut db: std::sync::MutexGuard<'_, db::InMemoryDb> = in_memory_db.lock().unwrap();
     match db.get_mut(args[0].as_str()) {
