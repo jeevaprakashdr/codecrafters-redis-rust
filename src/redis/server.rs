@@ -16,16 +16,12 @@ pub(crate) struct ServerContext {
 }
 
 impl ServerContext {
-    pub(crate) fn new(replication_info: ReplicationInfo) -> Self {
+    pub(self) fn new(replication_info: ReplicationInfo) -> Self {
         Self { replication_info }
     }
     
     pub(crate) fn get_role_info(&self) -> Vec<String> {
         self.replication_info.get_role_info()
-    }
-
-    pub(crate) fn is_master(&self) -> bool {
-        self.replication_info.is_master()
     }
 
     pub(crate) fn is_replica(&self) -> bool {
