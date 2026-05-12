@@ -95,17 +95,12 @@ impl<'a> Server<'a> {
     
         let addr = self.master_host.as_ref().unwrap();
         match TcpStream::connect(addr) {
-            Ok(tcp_stream) => {
-                println!("Establishing connection to master {:?}", tcp_stream);
-                self.handshake(tcp_stream);
+            Ok(mut tcp_stream) => {
+                println!("Establishing handshake with master {:?}", tcp_stream);
+                tcp_stream.write_all(create_resp_array(&vec![create_bulk_string(&RedisCommand::Ping.to_string()).as_str()]).as_bytes()).unwrap();
             },
             Err(e) => eprintln!("error: {}", e),
         }
-    }
-    
-    fn handshake(&self, mut stream: TcpStream) {
-        let cmd = RedisCommand::Ping.to_string();
-        stream.write_all(create_resp_array(&vec![create_bulk_string(&cmd).as_str()]).as_bytes()).unwrap();
     }
 }
 
