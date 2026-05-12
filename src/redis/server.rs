@@ -2,12 +2,13 @@ use std::collections::VecDeque;
 use std::thread;
 use std::sync::Arc;
 use std::net::{TcpListener, TcpStream};
-use std::io::{self, Read};
+use std::io::{self, Read, Write};
 use std::fmt::Display;
+use std::str::FromStr;
 use clap::Parser;
 
-use crate::redis::commands::{CommandHandler, CommandHandlerContext};
-use crate::redis::resp;
+use crate::redis::commands::{CommandHandler, CommandHandlerContext, RedisCommand};
+use crate::redis::resp::{self, create_bulk_string, create_resp_array};
 use crate::redis::cli::ServerArguments;
 
 pub(crate) struct ServerContext {
@@ -15,14 +16,27 @@ pub(crate) struct ServerContext {
 }
 
 impl ServerContext {
+    pub(crate) fn new(replication_info: ReplicationInfo) -> Self {
+        Self { replication_info }
+    }
+    
     pub(crate) fn get_role_info(&self) -> Vec<String> {
         self.replication_info.get_role_info()
+    }
+
+    pub(crate) fn is_master(&self) -> bool {
+        self.replication_info.is_master()
+    }
+
+    pub(crate) fn is_replica(&self) -> bool {
+        !self.replication_info.is_master()
     }
 }
 
 pub(crate) struct Server<'a> {
     pub host: &'a str,
     pub port: u16,
+    pub master_host: Option<String>,
     pub context: Arc<std::sync::Mutex<ServerContext>>
 }
 
@@ -30,13 +44,14 @@ impl<'a> Server<'a> {
     pub(crate) fn new() -> Self {
         let arguments = ServerArguments::parse();
         let replication_info = get_repl_info(&arguments);
-
+        let master_host = arguments.replicaof
+            .map(|master_host_info| master_host_info.replace(" ",":"));
+        
         Self {
             host: "127.0.0.1",
             port: arguments.port,
-            context: Arc::new(std::sync::Mutex::new(ServerContext { 
-                replication_info
-            })),
+            master_host,
+            context: Arc::new(std::sync::Mutex::new(ServerContext::new(replication_info))),
         }
     }
     
@@ -51,7 +66,6 @@ impl<'a> Server<'a> {
         thread::spawn(move || {
             loop {
                 let read_result = read_command_string(&mut stream);
-
                 if read_result.is_err() {
                     break
                 }
@@ -68,9 +82,34 @@ impl<'a> Server<'a> {
             }
         });
     }
+    
+    pub(crate) fn is_replica(&self) -> bool {
+        self.context.lock().unwrap().is_replica()
+    }
+    
+    pub(crate) fn replica_handshake(&self) {
+        if self.master_host.is_none() {
+            eprintln!("NO master host address found!!!");
+            return
+        }
+    
+        let addr = self.master_host.as_ref().unwrap();
+        match TcpStream::connect(addr) {
+            Ok(tcp_stream) => {
+                println!("Establishing connection to master {:?}", tcp_stream);
+                self.handshake(tcp_stream);
+            },
+            Err(e) => eprintln!("error: {}", e),
+        }
+    }
+    
+    fn handshake(&self, mut stream: TcpStream) {
+        let cmd = RedisCommand::Ping.to_string();
+        stream.write_all(create_resp_array(&vec![create_bulk_string(&cmd).as_str()]).as_bytes()).unwrap();
+    }
 }
 
-#[derive(Default, Clone, PartialEq)]
+#[derive(Debug, Default, Clone, PartialEq)]
 enum ReplicationRole {
     #[default]
     Master,
@@ -88,7 +127,7 @@ impl Display for ReplicationRole {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 struct ReplicationInfo {
     role: ReplicationRole,
     replication_id: Option<String>,
@@ -107,6 +146,12 @@ impl ReplicationInfo {
         info.push(format!("master_repl_offset:{}", self.replication_offset.map_or(0, |f| f)));
 
         info
+    }
+    
+    fn is_master(&self) -> bool {
+        self.role == ReplicationRole::Master
+        && self.replication_offset.is_some()
+        && self.replication_id.is_some()
     }
 }
 

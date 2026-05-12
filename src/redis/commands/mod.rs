@@ -20,6 +20,7 @@ mod info;
 
 use chrono::Utc;
 use std::collections::VecDeque;
+use std::fmt::Display;
 use std::io::Write;
 use std::net::TcpStream;
 use std::str::FromStr;
@@ -74,6 +75,17 @@ pub enum RedisCommand {
     Exec,
     Discard,
     Info,
+}
+
+impl Display for RedisCommand {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let cmd = match self {
+            RedisCommand::Ping => "ping",
+            _ => "unknown",
+        };
+
+        write!(f, "{}", cmd.to_uppercase())
+    }
 }
 
 impl FromStr for RedisCommand {
@@ -217,6 +229,7 @@ impl<'a> CommandHandler<'a> {
         let result = command.execute()
             .inspect_err(|err| eprintln!("{}", err))
             .unwrap_or_else(|e| e.to_string());
+
         stream.write_all(result.as_bytes()).unwrap();
     }
 }

@@ -14,6 +14,10 @@ fn main() {
 
     let server = Server::new();
     let listener = server.listener().unwrap();
+
+    if server.is_replica() {
+        server.replica_handshake();
+    }
     
     for stream in listener.incoming() {
         match stream {
