@@ -113,6 +113,13 @@ impl<'a> Server<'a> {
                 if let Err(e) = result {
                     eprintln!("Failed to establish handshake with master: {}", e);
                 }
+
+                let msg = create_array_bulk_string(&["PSYNC", "?", "-1"]);
+                tcp_stream.write_all(msg.as_bytes()).unwrap();
+                let result = read_command_string(&mut tcp_stream);
+                if let Err(e) = result {
+                    eprintln!("Failed to establish handshake with master: {}", e);
+                }
                     
             },
             Err(e) => eprintln!("error: {}", e),
