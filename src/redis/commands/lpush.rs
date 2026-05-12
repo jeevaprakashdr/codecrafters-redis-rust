@@ -6,20 +6,20 @@ use crate::redis::resp;
 use crate::redis::db::{self, DB};
 use crate::redis::commands::Command;
 
-pub struct Lpush<'a> {
-    pub args: &'a [&'a str]
+pub struct Lpush {
+    pub args: Vec<String>
 }
 
-impl<'a> Command for Lpush<'a> {
-    fn execute (&self) -> Result<String, &'static str> {
-       execute_lpush(self.args)
+impl Command for Lpush {
+    fn execute (&mut self) -> Result<String, &'static str> {
+       execute_lpush(&self.args)
     }
 }
 
-fn execute_lpush(args: &[&str]) -> Result<String, &'static str> {
+fn execute_lpush(args: &Vec<String>) -> Result<String, &'static str> {
     let in_memory_db = Arc::clone(&DB);
     let mut db: std::sync::MutexGuard<'_, db::InMemoryDb> = in_memory_db.lock().unwrap();
-    match db.get_mut(args[0]) {
+    match db.get_mut(args[0].as_str()) {
         Some(data) => {
             let mut current= data.list().to_vec();
             let mut new = args[1..].iter().map(|f| f.to_string()).collect();
@@ -37,7 +37,7 @@ fn execute_lpush(args: &[&str]) -> Result<String, &'static str> {
                 .collect();
             let count = list_items.len();
             let value = db::Value::with_list(list_items);
-            db.insert(args[0], value);
+            db.insert(args[0].as_str(), value);
             Ok(resp::create_simple_integer(count))
         }
     }

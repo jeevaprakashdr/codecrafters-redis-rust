@@ -1,6 +1,7 @@
 {
     "cSpell.words": [
         "blpop",
+        "Deque",
         "llen",
         "Lpop",
         "Lpush",

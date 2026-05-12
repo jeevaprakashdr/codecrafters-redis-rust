@@ -1,6 +1,6 @@
 use std::time::Duration;
 use std::{str::FromStr, sync::Arc};
-use std::{thread, time};
+use std::{thread, time, vec};
 
 use crate::redis::commands::Command;
 use crate::redis::db::{self, DB};
@@ -9,18 +9,18 @@ use crate::redis::resp::{
 };
 use crate::redis::stream::{Stream, StreamEntryId};
 
-pub struct Xread<'a> {
-    pub args: &'a [&'a str]
+pub struct Xread {
+    pub args: Vec<String>
 }
 
-impl<'a> Command for Xread<'a> {
-    fn execute(&self) -> Result<String, &'static str> {
+impl Command for Xread {
+    fn execute(&mut self) -> Result<String, &'static str> {
         let timeout = self.get_timeout();
         let mut timeout_expired = false;
         let mut previous = String::new();
 
         loop {
-            if let Ok(data) = self.execute() {
+            if let Ok(data) = self.fetch() {
                 if previous.is_empty() && self.block_until_latest_record() {
                     previous = data;
                 } else if (!previous.is_empty() && previous != data) 
@@ -41,8 +41,8 @@ impl<'a> Command for Xread<'a> {
     }
 }
 
-impl<'a> Xread<'a> {
-    fn execute(&self) -> Result<String, &'static str> {
+impl Xread {
+    fn fetch(&self) -> Result<String, &'static str> {
         let stream_keys = self.get_arg_stream_keys();
         let start_entry_ids = self.get_arg_stream_entry_ids();
 
@@ -50,7 +50,7 @@ impl<'a> Xread<'a> {
             .iter()
             .enumerate()
             .map(|(index, key)| {
-                if self.args.last() == Some(&"$") {
+                if self.args.last() == Some(&"$".to_string()) {
                     self.fetch_latest_data(key)
                 } else {
                     self.fetch_data(
@@ -149,14 +149,14 @@ impl<'a> Xread<'a> {
 
     fn get_timeout(&self) -> usize {
         if self.has_blocking_request() {
-            usize::from_str(self.args[1]).unwrap_or(0)
+            usize::from_str(self.args[1].as_str()).unwrap_or(0)
         } else {
             0
         }
     }
 
     fn block_until_latest_record(&self) -> bool {
-        self.args.last() == Some(&"$")
+        self.args.last() == Some(&"$".to_string())
     }
 
     fn get_arg_stream_keys(&self) -> Vec<String> {

@@ -2,31 +2,31 @@ use std::sync::Arc;
 use std::str::FromStr;
 
 use crate::redis::db::{self, DB};
+use crate::redis::server::ServerContext;
 use crate::redis::settings::{QueuedCommand, RedisSetting};
 use crate::redis::resp::{create_simple_integer, create_simple_string};
-use crate::redis::commands::Command;
+use crate::redis::commands::{Command, CommandHandlerContext, QueueContent};
 
 pub struct Incr<'a> {
-    pub args: &'a [&'a str],
-    pub redis_setting: Arc<std::sync::Mutex<RedisSetting>>
+    pub context: &'a mut CommandHandlerContext,
+    pub args: Vec<String>,
 }
 
 impl<'a> Command for Incr<'a> {
-    fn execute (&self) -> Result<String, &'static str> {
-        let mut setting = self.redis_setting.lock().unwrap();
-        if setting.get_multi_mode() {
-            let command = QueuedCommand {
+    fn execute (&mut self) -> Result<String, &'static str> {
+        if self.context.is_multi_mode_on() {
+            let command = QueueContent {
                 command_str: "INCR".to_string(),
                 args: self.args.iter().map(|f| f.to_string()).collect::<Vec<String>>()
             };
-            setting.command_queue.push(command);
+            self.context.push(command);
             return Ok(create_simple_string("QUEUED"))
         }
 
         let in_memory_db = Arc::clone(&DB);
         let mut db: std::sync::MutexGuard<'_, db::InMemoryDb> = in_memory_db.lock().unwrap();
         
-        match db.get_mut(self.args[0]) {
+        match db.get_mut(self.args[0].as_str()) {
             Some(data) => {
                 match usize::from_str(data.str_val()) {
                     Ok(int_val) => {
@@ -38,7 +38,7 @@ impl<'a> Command for Incr<'a> {
                 }
             }
             None => {
-                db.insert(self.args[0], db::Value::with_str("1".to_string()));
+                db.insert(self.args[0].as_str(), db::Value::with_str("1".to_string()));
                 Ok(create_simple_integer(1))
             },
         }

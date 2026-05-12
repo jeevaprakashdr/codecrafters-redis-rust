@@ -3,29 +3,29 @@ use std::{arch::x86_64, collections::{HashMap, HashSet}, str::FromStr, sync::Arc
 use crate::redis::{commands::Command, db::{self, DB, Value}, resp::create_bulk_string, stream::{Stream, StreamEntryId}};
 
 
-pub struct Xadd<'a> {
-    pub args: &'a [&'a str]
+pub struct Xadd {
+    pub args: Vec<String>
 }
 
-impl<'a> Command for Xadd<'a> {
-    fn execute (&self) -> Result<String, &'static str> {
+impl Command for Xadd {
+    fn execute (&mut self) -> Result<String, &'static str> {
         let in_memory_db = Arc::clone(&DB);
         let mut db: std::sync::MutexGuard<'_, db::InMemoryDb> = in_memory_db.lock().unwrap();
         
-        match db.get_mut(self.args[0]) {
+        match db.get_mut(self.args[0].as_str()) {
             Some(data) => {
                 let stream_entry_id = 
                     if self.args[1] == "*" {
                         StreamEntryId::default()
                     } else if self.args[1].contains("*") {
-                        let new: StreamEntryId = StreamEntryId::from_str(self.args[1]).unwrap_or_default();
+                        let new: StreamEntryId = StreamEntryId::from_str(self.args[1].as_str()).unwrap_or_default();
                         data.stream()
                             .iter()
                             .find(|x| x.id >= new)
                             .map(|x| StreamEntryId::new(x.id.ms, x.id.seqno + 1))
                             .unwrap_or(new)
                     } else {
-                        StreamEntryId::from_str(self.args[1]).unwrap()
+                        StreamEntryId::from_str(self.args[1].as_str()).unwrap()
                     };
                 println!("{}", stream_entry_id);
 
@@ -58,8 +58,8 @@ impl<'a> Command for Xadd<'a> {
                     .map(|f| f.to_string())
                     .collect::<Vec<_>>();
 
-                let key = self.args[0];
-                let stream_entry_id = StreamEntryId::from_str(self.args[1]).unwrap();
+                let key = self.args[0].as_str();
+                let stream_entry_id = StreamEntryId::from_str(self.args[1].as_str()).unwrap();
                 let mut en = HashMap::new();
                 en.insert(stream_entry_id.to_string(), stream_content.to_owned());
                 

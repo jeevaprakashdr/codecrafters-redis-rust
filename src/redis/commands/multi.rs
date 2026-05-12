@@ -1,18 +1,17 @@
 use std::sync::Arc;
 
+use crate::redis::server::ServerContext;
 use crate::redis::settings::RedisSetting;
 use crate::redis::resp::create_simple_string;
-use crate::redis::commands::Command;
+use crate::redis::commands::{Command, CommandHandlerContext};
 
-pub struct Multi {
-    pub redis_setting: Arc<std::sync::Mutex<RedisSetting>>,
+pub struct Multi<'a> {
+    pub context: &'a mut CommandHandlerContext,
 }
 
-impl Command for Multi {
-    fn execute (&self) -> Result<String, &'static str> {
-        let mut setting = self.redis_setting.lock().unwrap();
-        setting.set_multi_mode(true);
-        
+impl<'a> Command for Multi<'a> {
+    fn execute (&mut self) -> Result<String, &'static str> {
+        self.context.set_multi_mode_on();
         Ok(create_simple_string("OK"))
     }
 }

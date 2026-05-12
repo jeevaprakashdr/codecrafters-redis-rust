@@ -1,9 +1,9 @@
 use clap::Parser;
 
-#[derive(Parser, Clone)]
-pub struct Arguments {
+#[derive(Parser)]
+pub struct ServerArguments {
     #[arg(short, long, default_value = "6379")]
-    pub port: String,
+    pub port: u16,
     
     #[arg(short, long)]
     pub replicaof: Option<String>

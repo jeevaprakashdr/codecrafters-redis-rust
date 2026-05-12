@@ -1,53 +1,42 @@
 use std::sync::Arc;
 
+use crate::redis::server::ServerContext;
 use crate::redis::settings::RedisSetting;
 use crate::redis::resp::{create_array, create_empty_array};
-use crate::redis::commands::{Command, RedisCommand};
+use crate::redis::commands::{Command, CommandHandlerContext, QueueContent, RedisCommand};
 
-pub struct Exec {
-    pub redis_setting: Arc<std::sync::Mutex<RedisSetting>>,
+pub struct Exec<'a> {
+    pub context: &'a mut CommandHandlerContext,
 }
 
-impl Command for Exec {
-    fn execute (&self) -> Result<String, &'static str> {
-        if let setting = self.redis_setting.lock().unwrap() && !setting.get_multi_mode(){
+impl<'a> Command for Exec<'a> {
+    fn execute (&mut self) -> Result<String, &'static str> {
+        println!("multi {}", self.context.is_multi_mode_on());
+        if !self.context.is_multi_mode_on() {
             return Ok("-ERR EXEC without MULTI\r\n".to_string())
         }
 
-        if let mut setting = self.redis_setting.lock().unwrap()
-            && setting.get_multi_mode() 
-            && setting.command_queue.is_empty() {
-            setting.set_multi_mode(false);
+        if self.context.is_multi_mode_on()
+            && self.context.queue.is_empty() {
+            self.context.set_multi_mode_off();
             return  Ok(create_empty_array())
         }
         
-        let queued_commands= {
-            let mut setting = self.redis_setting.lock().unwrap();
-            setting.set_multi_mode(false);
-            
-            let queues = setting.command_queue.drain(..).collect::<Vec<_>>();
-            drop(setting);
-            queues
-        };
-
-        let command_outputs: Vec<String> = queued_commands
+        self.context.set_multi_mode_off();
+        let command_outputs: Vec<String> =  self.context.queue
+            .drain(..)
+            .collect::<Vec<_>>()
             .iter()
-            .map(|c| {
-                let args: Vec<&str> = c.args
-                    .iter()
-                    .map(|arg| arg.as_str())
-                    .collect();
-                
-                let command = RedisCommand::create_command(
-                    Arc::clone(&self.redis_setting), 
-                    c.command_str.as_str(), 
-                    args.as_slice()
+            .map(|content| {
+                let mut command = RedisCommand::create(
+                    content.command_str.clone(), 
+                    content.args.clone(),
+                    self.context, 
                 );
 
                 command.execute()
 
             })
-            // .filter(|result| result.is_ok())
             .map(|result| {
                 match result {
                     Ok(output) => output,

@@ -7,29 +7,29 @@ use crate::redis::resp;
 use crate::redis::db::{self, DB};
 use crate::redis::commands::Command;
 
-pub struct Lrange<'a> {
-    pub args: &'a [&'a str]
+pub struct Lrange {
+    pub args: Vec<String>
 }
 
-impl<'a> Command for Lrange<'a> {
-    fn execute (&self) -> Result<String, &'static str> {
-       execute_lrange(self.args)
+impl Command for Lrange {
+    fn execute (&mut self) -> Result<String, &'static str> {
+       execute_lrange(&self.args)
     }
 }
 
-fn execute_lrange(args: &[&str]) -> Result<String, &'static str> {
+fn execute_lrange(args: &Vec<String>) -> Result<String, &'static str> {
     let in_memory_db = Arc::clone(&DB);
     let db: std::sync::MutexGuard<'_, db::InMemoryDb> = in_memory_db.lock().unwrap();
 
-    if let Some(data) = db.get(args[0]) {
+    if let Some(data) = db.get(args[0].as_str()) {
         let len = data.list().len() as isize;
 
-         let start_index = isize::from_str(args[1])
+         let start_index = isize::from_str(args[1].as_str())
             .map(|s| normalize_index(len, s))
             .unwrap_or(0)
             .clamp(0, len);
 
-        let stop_index = isize::from_str(args[2])
+        let stop_index = isize::from_str(args[2].as_str())
             .map(|s| normalize_index(len, s))
             .unwrap_or(0)
             .clamp(-1, len - 1);

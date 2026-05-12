@@ -7,6 +7,14 @@ enum State {
     BulkString,
 }
 
+pub(crate) fn parse_with(cmd_str: String) -> Result<(String, Vec<String>), &'static str> {
+    let r = parse(cmd_str);
+    match r {
+        Ok(cmd_array) => Ok((cmd_array[0].to_string(), cmd_array[1..].to_vec())),
+        Err(err) => Err(err),
+    }
+}
+
 pub fn parse(input:String) -> Result<Vec<String>, &'static str> {
     let mut tokens: Vec<String> = Vec::new();
     let mut token = String::new();
@@ -225,12 +233,12 @@ mod tests {
         let input: Vec<(&[&str], &str)> = vec![
             (&["a"], "*1\r\n$1\r\na\r\n"),
             (&["a", "b"], "*2\r\n$1\r\na\r\n$1\r\nb\r\n"),
-        ];
-        
-        for (arr, expected) in input {
-            let actual = create_array_bulk_string(arr);
-    
-            assert_eq!(expected.to_string(), actual);
+            ];
+            
+            for (arr, expected) in input {
+                let actual = create_array_bulk_string(arr);
+                
+                assert_eq!(expected.to_string(), actual);
+            }
         }
-    }
 }

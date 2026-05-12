@@ -1,22 +1,22 @@
 use std::sync::Arc;
 
+use crate::redis::server::ServerContext;
 use crate::redis::settings::RedisSetting;
 use crate::redis::resp::create_simple_string;
-use crate::redis::commands::Command;
+use crate::redis::commands::{Command, CommandHandlerContext};
 
-pub struct Discard {
-    pub redis_setting: Arc<std::sync::Mutex<RedisSetting>>,
+pub struct Discard<'a> {
+    pub context: &'a mut CommandHandlerContext,
 }
 
-impl Command for Discard {
-    fn execute (&self) -> Result<String, &'static str> {
-        if let setting = self.redis_setting.lock().unwrap() && !setting.get_multi_mode(){
+impl<'a> Command for Discard<'a> {
+    fn execute (&mut self) -> Result<String, &'static str> {
+        if !self.context.is_multi_mode_on(){
             return Ok("-ERR DISCARD without MULTI\r\n".to_string())
         }
 
-        let mut setting = self.redis_setting.lock().unwrap();
-        setting.command_queue.clear();
-        setting.set_multi_mode(false);
+        self.context.flush_queue();
+        self.context.set_multi_mode_off();
 
         Ok(create_simple_string("OK"))
     }

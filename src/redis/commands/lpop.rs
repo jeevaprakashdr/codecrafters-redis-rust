@@ -5,20 +5,20 @@ use std::str::FromStr;
 use crate::redis::resp::{create_array_bulk_string, create_bulk_string, create_null_bulk_string};
 use crate::redis::db::{self, DB};
 use crate::redis::commands::Command;
-pub struct Lpop<'a> {
-    pub args: &'a [&'a str]
+pub struct Lpop {
+    pub args: Vec<String>
 }
 
-impl<'a> Command for Lpop<'a> {
-    fn execute (&self) -> Result<String, &'static str> {
-       execute_lpop(self.args)
+impl Command for Lpop {
+    fn execute (&mut self) -> Result<String, &'static str> {
+       execute_lpop(&self.args)
     }
 }
 
-fn execute_lpop(args: &[&str]) -> Result<String, &'static str> {
+fn execute_lpop(args: &Vec<String>) -> Result<String, &'static str> {
     let in_memory_db = Arc::clone(&DB);
     let mut db: std::sync::MutexGuard<'_, db::InMemoryDb> = in_memory_db.lock().unwrap();
-    match db.get_mut(args[0]) {
+    match db.get_mut(args[0].as_str()) {
         Some(data) => {
             if data.list().is_empty() {
                 return Ok(create_null_bulk_string())
