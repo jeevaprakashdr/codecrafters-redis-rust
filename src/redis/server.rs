@@ -8,7 +8,7 @@ use std::str::FromStr;
 use clap::Parser;
 
 use crate::redis::commands::{CommandHandler, CommandHandlerContext, RedisCommand};
-use crate::redis::resp::{self, create_bulk_string, create_resp_array};
+use crate::redis::resp::{self, create_array_bulk_string, create_bulk_string, create_resp_array};
 use crate::redis::cli::ServerArguments;
 
 pub(crate) struct ServerContext {
@@ -93,7 +93,27 @@ impl<'a> Server<'a> {
         match TcpStream::connect(addr) {
             Ok(mut tcp_stream) => {
                 println!("Establishing handshake with master {:?}", tcp_stream);
-                tcp_stream.write_all(create_resp_array(&vec![create_bulk_string(&RedisCommand::Ping.to_string()).as_str()]).as_bytes()).unwrap();
+                let msg = create_array_bulk_string(&[&RedisCommand::Ping.to_string()]);
+                tcp_stream.write_all(msg.as_bytes()).unwrap();
+                let result = read_command_string(&mut tcp_stream);
+                if let Err(e) = result {
+                    eprintln!("Failed to establish handshake with master: {}", e);
+                }
+
+                let msg = create_array_bulk_string(&["REPLCONF", "listening-port", "6380"]);
+                tcp_stream.write_all(msg.as_bytes()).unwrap();
+                let result = read_command_string(&mut tcp_stream);
+                if let Err(e) = result {
+                    eprintln!("Failed to establish handshake with master: {}", e);
+                }
+
+                let msg = create_array_bulk_string(&["REPLCONF", "capa", "psync2"]);
+                tcp_stream.write_all(msg.as_bytes()).unwrap();
+                let result = read_command_string(&mut tcp_stream);
+                if let Err(e) = result {
+                    eprintln!("Failed to establish handshake with master: {}", e);
+                }
+                    
             },
             Err(e) => eprintln!("error: {}", e),
         }
