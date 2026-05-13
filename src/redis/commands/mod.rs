@@ -59,30 +59,30 @@ use crate::redis::resp::{
 };
 use crate::redis::server::ServerContext;
 
-#[derive(Copy, Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum RedisCommand {
     InvalidCommand,
     Command,
     Ping,
-    Echo,
-    Set,
-    Get,
-    Lpush,
-    Rpush,
-    Lrange,
-    Llen,
-    Lpop,
-    Blpop,
-    Type,
-    Xadd,
-    Xrange,
-    Xread,
-    Incr,
+    Echo(Vec<String>),
+    Set(Vec<String>),
+    Get(Vec<String>),
+    Lpush(Vec<String>),
+    Rpush(Vec<String>),
+    Lrange(Vec<String>),
+    Llen(Vec<String>),
+    Lpop(Vec<String>),
+    Blpop(Vec<String>),
+    Type(Vec<String>),
+    Xadd(Vec<String>),
+    Xrange(Vec<String>),
+    Xread(Vec<String>),
+    Incr(Vec<String>),
     Multi,
     Exec,
     Discard,
     Info,
-    Replconf,
+    Replconf(Vec<String>),
     Psync
 }
 
@@ -92,25 +92,25 @@ impl Display for RedisCommand {
             RedisCommand::InvalidCommand => "invalid",
             RedisCommand::Ping => "ping",
             RedisCommand::Command => "command",
-            RedisCommand::Echo => "echo",
-            RedisCommand::Set => "set",
-            RedisCommand::Get => "get",
-            RedisCommand::Lpush => "lpush",
-            RedisCommand::Rpush => "rpush",
-            RedisCommand::Lrange => "lrange",
-            RedisCommand::Llen => "llen",
-            RedisCommand::Lpop => "lpop",
-            RedisCommand::Blpop => "blpop",
-            RedisCommand::Type => "type",
-            RedisCommand::Xadd => "xadd",
-            RedisCommand::Xrange => "xrange",
-            RedisCommand::Xread => "xread",
-            RedisCommand::Incr => "incr",
+            RedisCommand::Echo(_) => "echo",
+            RedisCommand::Set(_) => "set",
+            RedisCommand::Get(_) => "get",
+            RedisCommand::Lpush(_) => "lpush",
+            RedisCommand::Rpush(_) => "rpush",
+            RedisCommand::Lrange(_) => "lrange",
+            RedisCommand::Llen(_) => "llen",
+            RedisCommand::Lpop(_) => "lpop",
+            RedisCommand::Blpop(_) => "blpop",
+            RedisCommand::Type(_) => "type",
+            RedisCommand::Xadd(_) => "xadd",
+            RedisCommand::Xrange(_) => "xrange",
+            RedisCommand::Xread(_) => "xread",
+            RedisCommand::Incr(_) => "incr",
             RedisCommand::Multi => "multi",
             RedisCommand::Exec => "exec",
             RedisCommand::Discard => "discard",
             RedisCommand::Info => "info",
-            RedisCommand::Replconf => "replconf",
+            RedisCommand::Replconf(_) => "replconf",
             RedisCommand::Psync => "psync",
         };
 
@@ -118,42 +118,9 @@ impl Display for RedisCommand {
     }
 }
 
-impl FromStr for RedisCommand {
-    type Err = String;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s.to_lowercase().as_str() {
-            "command" => Ok(RedisCommand::Command),
-            "ping" => Ok(RedisCommand::Ping),
-            "echo" => Ok(RedisCommand::Echo),
-            "set" => Ok(RedisCommand::Set),
-            "get" => Ok(RedisCommand::Get),
-            "lpush" => Ok(RedisCommand::Lpush),
-            "rpush" => Ok(RedisCommand::Rpush),
-            "lrange" => Ok(RedisCommand::Lrange),
-            "llen" => Ok(RedisCommand::Llen),
-            "lpop" => Ok(RedisCommand::Lpop),
-            "blpop" => Ok(RedisCommand::Blpop),
-            "type" => Ok(RedisCommand::Type),
-            "xadd" => Ok(RedisCommand::Xadd),
-            "xrange" => Ok(RedisCommand::Xrange),
-            "xread" => Ok(RedisCommand::Xread),
-            "incr" => Ok(RedisCommand::Incr),
-            "multi" => Ok(RedisCommand::Multi),
-            "exec" => Ok(RedisCommand::Exec),
-            "discard" => Ok(RedisCommand::Discard),
-            "info" => Ok(RedisCommand::Info),
-            "replconf" => Ok(RedisCommand::Replconf),
-            "psync" => Ok(RedisCommand::Psync),
-            _ => Ok(RedisCommand::InvalidCommand),
-        }
-    }
-}
-
 impl RedisCommand {
     fn create<'a>(
         command: RedisCommand, 
-        args: Vec<String>, 
         context: &'a mut CommandHandlerContext,
         server_context: Arc<std::sync::Mutex<ServerContext>>
     ) 
@@ -162,26 +129,26 @@ impl RedisCommand {
             RedisCommand::InvalidCommand => Box::new(InvalidCommand{}),
             RedisCommand::Command => Box::new(Ping {}),
             RedisCommand::Ping => Box::new(Ping {}),
-            RedisCommand::Echo => Box::new(Echo { args }),
-            RedisCommand::Set => Box::new(Set {
+            RedisCommand::Echo(args) => Box::new(Echo { args }),
+            RedisCommand::Set(args) => Box::new(Set {
                 context,
                 args,
             }),
-            RedisCommand::Get => Box::new(Get {
+            RedisCommand::Get(args) => Box::new(Get {
                 context,
                 args,
             }),
-            RedisCommand::Lpush => Box::new(Lpush { args }),
-            RedisCommand::Rpush => Box::new(Rpush { args }),
-            RedisCommand::Lrange => Box::new(Lrange { args }),
-            RedisCommand::Llen => Box::new(Llen { args }),
-            RedisCommand::Lpop => Box::new(Lpop { args }),
-            RedisCommand::Blpop => Box::new(BlPopCommand { args }),
-            RedisCommand::Type => Box::new(Type { args }),
-            RedisCommand::Xadd => Box::new(Xadd { args }),
-            RedisCommand::Xrange => Box::new(Xrange { args }),
-            RedisCommand::Xread => Box::new(Xread { args }),
-            RedisCommand::Incr => Box::new(Incr {
+            RedisCommand::Lpush(args) => Box::new(Lpush { args }),
+            RedisCommand::Rpush(args) => Box::new(Rpush { args }),
+            RedisCommand::Lrange(args) => Box::new(Lrange { args }),
+            RedisCommand::Llen(args) => Box::new(Llen { args }),
+            RedisCommand::Lpop(args) => Box::new(Lpop { args }),
+            RedisCommand::Blpop(args) => Box::new(BlPopCommand { args }),
+            RedisCommand::Type(args) => Box::new(Type { args }),
+            RedisCommand::Xadd(args) => Box::new(Xadd { args }),
+            RedisCommand::Xrange(args) => Box::new(Xrange { args }),
+            RedisCommand::Xread(args) => Box::new(Xread { args }),
+            RedisCommand::Incr(args) => Box::new(Incr {
                 context,
                 args,
             }),
@@ -189,7 +156,7 @@ impl RedisCommand {
             RedisCommand::Exec => Box::new(Exec { server_context, context }),
             RedisCommand::Discard => Box::new(Discard { context, }),
             RedisCommand::Info => Box::new(Info { server_context }),
-            RedisCommand::Replconf => Box::new(Replconf{ args }),
+            RedisCommand::Replconf(args) => Box::new(Replconf{ args }),
             RedisCommand::Psync => Box::new(Psync{ server_context }),
         }
     }
@@ -201,7 +168,6 @@ trait Command {
 
 pub(crate) struct QueueContent {
     pub command: RedisCommand,
-    pub args: Vec<String>,
 }
 
 pub(crate) struct CommandHandlerContext {
@@ -237,21 +203,19 @@ impl CommandHandlerContext {
 
 pub(crate) struct CommandHandler<'a> {
     command: RedisCommand,
-    args: Vec<String>,
     context: &'a mut CommandHandlerContext,
 }
 
 impl<'a> CommandHandler<'a> {
-    pub(crate) fn new(command: RedisCommand, args: Vec<String>, context: &'a mut CommandHandlerContext) -> Self {
+    pub(crate) fn new(command: RedisCommand, context: &'a mut CommandHandlerContext) -> Self {
         Self {
             command,
-            args,
             context
         }
     }
 
     pub(crate) fn handle(&mut self, mut stream: &TcpStream, server_context: Arc<std::sync::Mutex<ServerContext>>) {
-        let mut command = RedisCommand::create(self.command, self.args.clone(), self.context, server_context);
+        let mut command = RedisCommand::create(self.command.clone(), self.context, server_context);
         let result = command.execute()
             .inspect_err(|err| eprintln!("{}", err))
             .unwrap_or_else(|e| e.to_string());

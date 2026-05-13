@@ -17,10 +17,8 @@ pub struct Set<'a> {
 impl<'a> Command for Set<'a> {
     fn execute(&mut self) -> Result<String, &'static str> {
         if self.context.is_multi_mode_on() {
-            self.context.push(QueueContent {
-                command: RedisCommand::Set,
-                args: self.args.iter().map(|f| f.to_string()).collect::<Vec<String>>()
-            });
+            let args = self.args.iter().map(|f| f.to_string()).collect::<Vec<String>>();
+            self.context.push(QueueContent { command: RedisCommand::Set(args) });
             Ok(create_simple_string("QUEUED"))
         } else {
             execute_set(&self.args)

@@ -15,14 +15,12 @@ pub struct Get<'a> {
 impl<'a> Command for Get<'a> {
     fn execute(&mut self) -> Result<String, &'static str> {
         if self.context.is_multi_mode_on() {
-            self.context.push(QueueContent {
-                command: RedisCommand::Get,
-                args: self
+            let args = self
                     .args
                     .iter()
                     .map(|f| f.to_string())
-                    .collect::<Vec<String>>(),
-            });
+                    .collect::<Vec<String>>();
+            self.context.push(QueueContent {command: RedisCommand::Get(args)});
             return Ok(create_simple_string("QUEUED"));
         }
 

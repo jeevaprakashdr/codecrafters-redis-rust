@@ -76,8 +76,8 @@ impl<'a> Server<'a> {
                     break;
                 }
 
-                if let Ok((command, args)) = resp::parse_with(cmd_str) {
-                    let mut command_handler = CommandHandler::new(command, args, &mut context);
+                if let Ok(command) = resp::parse(cmd_str) {
+                    let mut command_handler = CommandHandler::new(command, &mut context);
                     command_handler.handle(&stream, server_context.clone())
                 }
             }

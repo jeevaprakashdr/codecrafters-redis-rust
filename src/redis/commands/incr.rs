@@ -14,10 +14,8 @@ pub struct Incr<'a> {
 impl<'a> Command for Incr<'a> {
     fn execute (&mut self) -> Result<String, &'static str> {
         if self.context.is_multi_mode_on() {
-            self.context.push(QueueContent {
-                command: RedisCommand::Incr,
-                args: self.args.iter().map(|f| f.to_string()).collect::<Vec<String>>()
-            });
+            let args = self.args.iter().map(|f| f.to_string()).collect::<Vec<String>>();
+            self.context.push(QueueContent { command: RedisCommand::Incr(args) });
             return Ok(create_simple_string("QUEUED"))
         }
 
