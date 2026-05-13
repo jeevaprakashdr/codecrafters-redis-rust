@@ -1,3 +1,4 @@
+mod invalid;
 mod blpop_command;
 mod discard;
 mod echo;
@@ -28,6 +29,7 @@ use std::net::TcpStream;
 use std::str::FromStr;
 use std::sync::{Arc, Mutex};
 
+use crate::redis::commands;
 use crate::redis::commands::blpop_command::BlPopCommand;
 use crate::redis::commands::discard::Discard;
 use crate::redis::commands::echo::Echo;
@@ -86,7 +88,27 @@ impl Display for RedisCommand {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let cmd = match self {
             RedisCommand::Ping => "ping",
-            _ => "unknown",
+            RedisCommand::Command => "command",
+            RedisCommand::Echo => "echo",
+            RedisCommand::Set => "set",
+            RedisCommand::Get => "get",
+            RedisCommand::Lpush => "lpush",
+            RedisCommand::Rpush => "rpush",
+            RedisCommand::Lrange => "lrange",
+            RedisCommand::Llen => "llen",
+            RedisCommand::Lpop => "lpop",
+            RedisCommand::Blpop => "blpop",
+            RedisCommand::Type => "type",
+            RedisCommand::Xadd => "xadd",
+            RedisCommand::Xrange => "xrange",
+            RedisCommand::Xread => "xread",
+            RedisCommand::Incr => "incr",
+            RedisCommand::Multi => "multi",
+            RedisCommand::Exec => "exec",
+            RedisCommand::Discard => "discard",
+            RedisCommand::Info => "info",
+            RedisCommand::Replconf => "replconf",
+            RedisCommand::Psync => "psync",
         };
 
         write!(f, "{}", cmd.to_uppercase())
@@ -120,7 +142,7 @@ impl FromStr for RedisCommand {
             "info" => Ok(RedisCommand::Info),
             "replconf" => Ok(RedisCommand::Replconf),
             "psync" => Ok(RedisCommand::Psync),
-            _ => Err(format!("unknown command: {}", s)),
+            _ => Err(format!("Unknown Command: {}", s)),
         }
     }
 }
@@ -165,21 +187,13 @@ impl RedisCommand {
             Ok(RedisCommand::Info) => Box::new(Info { server_context }),
             Ok(RedisCommand::Replconf) => Box::new(Replconf{ args }),
             Ok(RedisCommand::Psync) => Box::new(Psync{ server_context }),
-            Err(_) => Box::new(InvalidCommand {}),
+            Err(_) => Box::new(commands::invalid::InvalidCommand {}),
         }
     }
 }
 
 trait Command {
     fn execute(&mut self) -> Result<String, &'static str>;
-}
-
-pub struct InvalidCommand();
-
-impl Command for InvalidCommand {
-    fn execute(&mut self) -> Result<String, &'static str> {
-        Err("INVALID COMMAND")
-    }
 }
 
 pub(crate) struct QueueContent {
