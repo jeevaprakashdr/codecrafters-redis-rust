@@ -4,7 +4,7 @@ use std::str::FromStr;
 use crate::redis::db::{self, DB};
 use crate::redis::server::ServerContext;
 use crate::redis::resp::{create_simple_integer, create_simple_string};
-use crate::redis::commands::{Command, CommandHandlerContext, QueueContent};
+use crate::redis::commands::{Command, CommandHandlerContext, QueueContent, RedisCommand};
 
 pub struct Incr<'a> {
     pub context: &'a mut CommandHandlerContext,
@@ -14,11 +14,10 @@ pub struct Incr<'a> {
 impl<'a> Command for Incr<'a> {
     fn execute (&mut self) -> Result<String, &'static str> {
         if self.context.is_multi_mode_on() {
-            let command = QueueContent {
-                command_str: "INCR".to_string(),
+            self.context.push(QueueContent {
+                command: RedisCommand::Incr,
                 args: self.args.iter().map(|f| f.to_string()).collect::<Vec<String>>()
-            };
-            self.context.push(command);
+            });
             return Ok(create_simple_string("QUEUED"))
         }
 

@@ -4,7 +4,7 @@ use std::task::Context;
 
 use chrono::Utc;
 
-use crate::redis::commands::{Command, CommandHandlerContext, QueueContent};
+use crate::redis::commands::{Command, CommandHandlerContext, QueueContent, RedisCommand};
 use crate::redis::db::{self, DB};
 use crate::redis::resp::{self, create_simple_string};
 use crate::redis::server::ServerContext;
@@ -17,11 +17,10 @@ pub struct Set<'a> {
 impl<'a> Command for Set<'a> {
     fn execute(&mut self) -> Result<String, &'static str> {
         if self.context.is_multi_mode_on() {
-            let command = QueueContent {
-                command_str: "SET".to_string(),
+            self.context.push(QueueContent {
+                command: RedisCommand::Set,
                 args: self.args.iter().map(|f| f.to_string()).collect::<Vec<String>>()
-            };
-            self.context.push(command);
+            });
             Ok(create_simple_string("QUEUED"))
         } else {
             execute_set(&self.args)

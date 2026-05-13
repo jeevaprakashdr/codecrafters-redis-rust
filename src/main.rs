@@ -16,7 +16,7 @@ fn main() {
     let listener = server.listener().unwrap();
 
     if server.is_replica() {
-        server.replica_handshake();
+        server.handshake_with_master();
     }
     
     for stream in listener.incoming() {

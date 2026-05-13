@@ -29,7 +29,7 @@ impl<'a> Command for Exec<'a> {
             .iter()
             .map(|content| {
                 let mut command = RedisCommand::create(
-                    content.command_str.clone(), 
+                    content.command, 
                     content.args.clone(),
                     self.context,
                     self.server_context.clone()

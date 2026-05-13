@@ -1,4 +1,6 @@
-use std::mem;
+use std::{mem, str::FromStr};
+
+use crate::redis::commands::RedisCommand;
 
 enum State {
     ArraySize,
@@ -7,21 +9,22 @@ enum State {
     BulkString,
 }
 
-pub(crate) fn parse_with(cmd_str: String) -> Result<(String, Vec<String>), &'static str> {
-    let r = parse(cmd_str);
-    match r {
-        Ok(cmd_array) => Ok((cmd_array[0].to_string(), cmd_array[1..].to_vec())),
-        Err(err) => Err(err),
+pub(crate) fn parse_with(cmd_str: String) -> Result<(RedisCommand, Vec<String>), &'static str> {
+    let parsed = parse(cmd_str);
+    match RedisCommand::from_str(parsed.first().unwrap_or(&String::default())) {
+        Ok(RedisCommand::InvalidCommand) => Ok((RedisCommand::InvalidCommand, vec![])),
+        Ok(command) => Ok((command, parsed[1..].to_vec())),
+        Err(_) => Err("Unknown command"),
     }
 }
 
-pub fn parse(input:String) -> Result<Vec<String>, &'static str> {
+fn parse(input:String) -> Vec<String> {
     let mut tokens: Vec<String> = Vec::new();
     let mut token = String::new();
     let mut chars = input.chars();
     let mut state = State::ArraySize;
 
-    let mut bulk_strings: Vec<String> = Vec::new();
+    let mut parsed_val: Vec<String> = Vec::new();
 
     loop {
         let current = chars.next();
@@ -89,7 +92,7 @@ pub fn parse(input:String) -> Result<Vec<String>, &'static str> {
                     }
                     Some('\n') => {
                         if !token.is_empty() {
-                            bulk_strings.push(token.clone());
+                            parsed_val.push(token.clone());
                             tokens.push(mem::take(&mut token));
                         }
                      
@@ -107,8 +110,8 @@ pub fn parse(input:String) -> Result<Vec<String>, &'static str> {
         tokens.push(token);
     }
     
-    println!("{:?}", bulk_strings);
-    Ok(bulk_strings)
+    println!("{:?}", parsed_val);
+    parsed_val
 }
 
 pub fn create_array(collection: &[&str]) -> String {
@@ -186,11 +189,9 @@ mod tests {
             ];
         
         for (cmd, expected) in inputs {
-            let result = parse(cmd.to_string());
+            let result: Vec<String> = parse(cmd.to_string());
         
-            assert!(result.is_ok(), "Cmd processing FAILED");
-            let response = result.unwrap();
-            assert_eq!(response, expected);
+            assert_eq!(result, expected);
         }        
     }
 

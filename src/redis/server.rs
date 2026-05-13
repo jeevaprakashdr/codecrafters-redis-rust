@@ -76,8 +76,8 @@ impl<'a> Server<'a> {
                     break;
                 }
 
-                if let Ok((cmd_str, args)) = resp::parse_with(cmd_str) {
-                    let mut command_handler = CommandHandler::new(cmd_str, args, &mut context);
+                if let Ok((command, args)) = resp::parse_with(cmd_str) {
+                    let mut command_handler = CommandHandler::new(command, args, &mut context);
                     command_handler.handle(&stream, server_context.clone())
                 }
             }
@@ -88,7 +88,7 @@ impl<'a> Server<'a> {
         self.context.lock().unwrap().is_replica()
     }
 
-    pub(crate) fn replica_handshake(&self) {
+    pub(crate) fn handshake_with_master(&self) {
         if self.master_host.is_none() {
             eprintln!("NO `master` host address found!!!");
             return;
