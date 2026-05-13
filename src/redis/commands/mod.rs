@@ -17,6 +17,7 @@ mod xadd;
 mod xrange;
 mod xread;
 mod info;
+mod replconf;
 
 use chrono::Utc;
 use std::collections::VecDeque;
@@ -26,7 +27,6 @@ use std::net::TcpStream;
 use std::str::FromStr;
 use std::sync::{Arc, Mutex};
 
-use crate::redis::commands;
 use crate::redis::commands::blpop_command::BlPopCommand;
 use crate::redis::commands::discard::Discard;
 use crate::redis::commands::echo::Echo;
@@ -40,6 +40,7 @@ use crate::redis::commands::lpush::Lpush;
 use crate::redis::commands::lrange::Lrange;
 use crate::redis::commands::multi::Multi;
 use crate::redis::commands::ping::Ping;
+use crate::redis::commands::replconf::Replconf;
 use crate::redis::commands::rpush::Rpush;
 use crate::redis::commands::set::Set;
 use crate::redis::commands::r#type::Type;
@@ -75,6 +76,7 @@ pub enum RedisCommand {
     Exec,
     Discard,
     Info,
+    Replconf,
 }
 
 impl Display for RedisCommand {
@@ -113,6 +115,7 @@ impl FromStr for RedisCommand {
             "exec" => Ok(RedisCommand::Exec),
             "discard" => Ok(RedisCommand::Discard),
             "info" => Ok(RedisCommand::Info),
+            "replconf" => Ok(RedisCommand::Replconf),
             _ => Err(format!("unknown command: {}", s)),
         }
     }
@@ -156,6 +159,7 @@ impl RedisCommand {
             Ok(RedisCommand::Exec) => Box::new(Exec { server_context, context }),
             Ok(RedisCommand::Discard) => Box::new(Discard { context, }),
             Ok(RedisCommand::Info) => Box::new(Info { server_context }),
+            Ok(RedisCommand::Replconf) => Box::new(Replconf{ args }),
             Err(_) => Box::new(InvalidCommand {}),
         }
     }
