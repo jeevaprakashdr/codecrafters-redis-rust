@@ -18,6 +18,7 @@ mod xrange;
 mod xread;
 mod info;
 mod replconf;
+mod psync;
 
 use chrono::Utc;
 use std::collections::VecDeque;
@@ -40,6 +41,7 @@ use crate::redis::commands::lpush::Lpush;
 use crate::redis::commands::lrange::Lrange;
 use crate::redis::commands::multi::Multi;
 use crate::redis::commands::ping::Ping;
+use crate::redis::commands::psync::Psync;
 use crate::redis::commands::replconf::Replconf;
 use crate::redis::commands::rpush::Rpush;
 use crate::redis::commands::set::Set;
@@ -77,6 +79,7 @@ pub enum RedisCommand {
     Discard,
     Info,
     Replconf,
+    Psync
 }
 
 impl Display for RedisCommand {
@@ -116,6 +119,7 @@ impl FromStr for RedisCommand {
             "discard" => Ok(RedisCommand::Discard),
             "info" => Ok(RedisCommand::Info),
             "replconf" => Ok(RedisCommand::Replconf),
+            "psync" => Ok(RedisCommand::Psync),
             _ => Err(format!("unknown command: {}", s)),
         }
     }
@@ -160,6 +164,7 @@ impl RedisCommand {
             Ok(RedisCommand::Discard) => Box::new(Discard { context, }),
             Ok(RedisCommand::Info) => Box::new(Info { server_context }),
             Ok(RedisCommand::Replconf) => Box::new(Replconf{ args }),
+            Ok(RedisCommand::Psync) => Box::new(Psync{ server_context }),
             Err(_) => Box::new(InvalidCommand {}),
         }
     }

@@ -23,6 +23,10 @@ impl ServerContext {
     pub(crate) fn get_role_info(&self) -> Vec<String> {
         self.replication_info.get_role_info()
     }
+    
+    pub(crate) fn get_replication_id(&self) -> String {
+        self.replication_info.get_replication_id()
+    }
 
     pub(crate) fn is_replica(&self) -> bool {
         !self.replication_info.is_master()
@@ -173,6 +177,10 @@ impl ReplicationInfo {
         self.role == ReplicationRole::Master
             && self.replication_offset.is_some()
             && self.replication_id.is_some()
+    }
+    
+    fn get_replication_id(&self) -> String {
+        self.replication_id.clone().map_or("".to_string(), |f| f)
     }
 }
 
